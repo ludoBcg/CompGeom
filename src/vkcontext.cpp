@@ -1,0 +1,348 @@
+/*********************************************************************************************************************
+ *
+ * vkcontext.cpp
+ *
+ * CompGeom
+ * Ludovic Blache
+ *
+ *********************************************************************************************************************/
+
+#include "vkcontext.h"
+
+
+
+namespace CompGeom
+{
+
+
+/*
+ * Creates a VkInstance
+ */
+void VkContext::createInstance()
+{
+    // Enable validation layers (if debug mode)
+    if (enableValidationLayers && !checkValidationLayerSupport()) {
+        throw std::runtime_error("validation layers requested, but not available!");
+    }
+
+    // 1. -----------------------------------------------------------------------------------------
+    // Fill-in the structure specifying application information (optional)
+    VkApplicationInfo appInfo{};
+    appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+    appInfo.pApplicationName = "Hello Triangle";
+    appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+    appInfo.pEngineName = "No Engine";
+    appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+    appInfo.apiVersion = VK_API_VERSION_1_0;
+
+    // 2. -----------------------------------------------------------------------------------------
+    // Fill-in the structure specifying parameters of a newly created instance (mandatory)
+    VkInstanceCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    createInfo.pApplicationInfo = &appInfo; // ref to application info (defined above)
+    // Specify the desired global extensions to interface with the window system
+    uint32_t glfwExtensionCount = 0;
+    const char** glfwExtensions;
+    glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount); //use the GLFW built-in function to know which extension is needed
+    //createInfo.enabledExtensionCount = glfwExtensionCount;
+    //createInfo.ppEnabledExtensionNames = glfwExtensions;
+    createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
+    createInfo.ppEnabledExtensionNames = deviceExtensions.data();
+    //createInfo.enabledLayerCount = 0;
+
+    // add validation layers (if enabled)
+    if (enableValidationLayers) {
+        createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+        createInfo.ppEnabledLayerNames = validationLayers.data();
+    }
+    else {
+        createInfo.enabledLayerCount = 0;
+    }
+
+    // add extensions
+    auto extensions = getRequiredExtensions();
+    createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
+    createInfo.ppEnabledExtensionNames = extensions.data();
+
+
+    // 3. -----------------------------------------------------------------------------------------
+    // Opt: get available extensions ---
+    uint32_t extensionCount = 0;
+    vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
+    std::vector<VkExtensionProperties> extensionsAv(extensionCount);
+    vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensionsAv.data());
+    
+    std::string extensionNames = "available extensions:\n";
+    for (const auto& extension : extensionsAv) {
+        extensionNames += "\t" + std::string(extension.extensionName) + "\n";
+    }
+    infoLog() << extensionNames;
+    // ---
+
+    // see C:\VulkanSDK\1.3.250.1\Config\vk_layer_settings.txt for more behavior of validation layers
+    // copy file to Debug and Release directories and follow the instructions to set the desired behavior
+
+
+    // 4. -----------------------------------------------------------------------------------------
+    VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
+    if (enableValidationLayers)
+    {
+        createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+        createInfo.ppEnabledLayerNames = validationLayers.data();
+
+        populateDebugMessengerCreateInfo(debugCreateInfo);
+        createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
+    }
+    else
+    {
+        createInfo.enabledLayerCount = 0;
+        createInfo.pNext = nullptr;
+    }
+
+
+    // 5. -----------------------------------------------------------------------------------------
+    // Finally create the instance
+    //VkResult result = vkCreateInstance( &createInfo, // ptr to struct with creation info
+    //                                    nullptr,     // ptr to custom allocator callbacks
+    //                                    &instance    // ptr to the variable that stores the handle to the new object
+    //                                  );
+    if (vkCreateInstance(&createInfo, nullptr, &m_instance) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create instance!");
+    }
+
+    infoLog() << "createInstance(): OK ";
+}
+
+/*
+ * Creation of a logical device
+ */
+void VkContext::createLogicalDevice()
+{
+    QueueFamilyIndices indices = findQueueFamilies(m_physicalDevice, m_surface);
+
+    // creates one queue for each family
+    std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+    std::set<uint32_t> uniqueQueueFamilies = { indices.graphicsFamily.value(), indices.presentFamily.value() };
+
+    float queuePriority = 1.0f;
+    for (uint32_t queueFamily : uniqueQueueFamilies) {
+        VkDeviceQueueCreateInfo queueCreateInfo{};
+        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queueCreateInfo.queueFamilyIndex = queueFamily;
+        queueCreateInfo.queueCount = 1;
+        queueCreateInfo.pQueuePriorities = &queuePriority;
+        queueCreateInfos.push_back(queueCreateInfo);
+    }
+ 
+    VkPhysicalDeviceFeatures deviceFeatures{};
+    deviceFeatures.samplerAnisotropy = VK_TRUE;
+    //deviceFeatures.sampleRateShading = VK_TRUE; // enable sample shading feature for the device
+    deviceFeatures.fillModeNonSolid = VK_TRUE;
+
+    VkDeviceCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+
+    createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
+    createInfo.pQueueCreateInfos = queueCreateInfos.data();
+
+    createInfo.pEnabledFeatures = &deviceFeatures;
+
+    createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
+    createInfo.ppEnabledExtensionNames = deviceExtensions.data();
+
+    if (enableValidationLayers) 
+    {
+        createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+        createInfo.ppEnabledLayerNames = validationLayers.data();
+    }
+    else 
+    {
+        createInfo.enabledLayerCount = 0;
+    }
+
+    if (vkCreateDevice(m_physicalDevice, &createInfo, nullptr, &m_device) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create logical device!");
+    }
+
+    vkGetDeviceQueue(m_device, indices.graphicsFamily.value(), 0, &m_graphicsQueue);
+    vkGetDeviceQueue(m_device, indices.presentFamily.value(), 0, &m_presentQueue);
+
+    infoLog() << "createLogicalDevice(): OK ";
+}
+
+
+/*
+ * Creation of command pool
+ */
+void VkContext::createCommandPool()
+{
+    QueueFamilyIndices queueFamilyIndices = findQueueFamilies(m_physicalDevice, m_surface);
+
+    VkCommandPoolCreateInfo poolInfo{};
+    poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+
+    if (vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_commandPool) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create command pool!");
+    }
+
+    infoLog() << "createCommandPool(): OK ";
+}
+
+
+/*
+ * Creates surface, using GLFW implementation 
+ * (which fills-in a VkWin32SurfaceCreateInfoKHR struct)
+ */
+void VkContext::createSurface(GLFWwindow* _window)
+{
+    if (glfwCreateWindowSurface(m_instance, _window, nullptr, &m_surface) != VK_SUCCESS) 
+    {
+        throw std::runtime_error("failed to create window surface!");
+    }
+    infoLog() << "createSurface(): OK ";
+}
+
+
+/*
+ * Debug callback to handle validation layers will messages
+ * (would be printed to the standard output by default otherwise)
+ */
+VKAPI_ATTR VkBool32 VKAPI_CALL VkContext::debugCallback(
+        VkDebugUtilsMessageSeverityFlagBitsEXT _messageSeverity,
+        VkDebugUtilsMessageTypeFlagsEXT _messageType,
+        const VkDebugUtilsMessengerCallbackDataEXT* _pCallbackData,
+        void* _pUserData)
+{
+    // messageSeverity param can be one of the following:
+    //    VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT: Diagnostic message
+    //    VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT : Informational message like the creation of a resource
+    //    VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT : Message about behavior that is not necessarily an error, but very likely a bug in your application
+    //    VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT : Message about behavior that is invalidand may cause crashes
+
+    // example
+    if (_messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
+        // Message is important enough to show
+    }
+
+    // messageType param can have the following values :
+    //    VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT: Some event has happened that is unrelated to the specification or performance
+    //    VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT : Something has happened that violates the specification or indicates a possible mistake
+    //    VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT : Potential non - optimal use of Vulkan
+
+    // pCallbackData param refers to a VkDebugUtilsMessengerCallbackDataEXT struct containing the details of the message itself, with the most important members being :
+    //    pMessage: The debug message as a null - terminated string
+    //    pObjects : Array of Vulkan object handles related to the message
+    //    objectCount : Number of objects in array
+
+
+    errorLog() << "validation layer: " + std::string(_pCallbackData->pMessage);
+
+    return VK_FALSE;
+}
+
+
+/*
+ * Debug utils messenger
+ */
+void VkContext::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& _createInfo)
+{
+    _createInfo = {};
+    _createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+    _createInfo.messageSeverity = /*VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |*/
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    _createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+    _createInfo.pfnUserCallback = debugCallback;
+}
+
+
+/*
+ * Debug messenger
+ */
+void VkContext::setupDebugMessenger()
+{
+    if (!enableValidationLayers)
+        return;
+
+    // fill-in a structure with details about the messenger and its callback
+    //VkDebugUtilsMessengerCreateInfoEXT createInfo{};
+    //createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+    //createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    //createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+    //createInfo.pfnUserCallback = debugCallback;
+    //createInfo.pUserData = nullptr; // Optional
+    VkDebugUtilsMessengerCreateInfoEXT createInfo;
+    populateDebugMessengerCreateInfo(createInfo);
+
+    if (CreateDebugUtilsMessengerEXT(m_instance, &createInfo, nullptr, &m_debugMessenger) != VK_SUCCESS) {
+        throw std::runtime_error("failed to set up debug messenger!");
+    }
+
+    infoLog() << "setupDebugMessenger(): OK ";
+}
+
+
+
+
+void VkContext::pickPhysicalDevice(VkSampleCountFlagBits& _msaaSamples)
+{
+    // select a graphics card in the system that supports the features we need
+
+    // lists the graphics cards 
+    //  starts with querying just the number.
+    uint32_t deviceCount = 0;
+    vkEnumeratePhysicalDevices(getInstance(), &deviceCount, nullptr);
+
+    // If there are 0 devices with Vulkan support then there is no point going further.
+    if (deviceCount == 0) {
+        throw std::runtime_error("failed to find GPUs with Vulkan support!");
+    }
+
+    // allocate an array to hold all of the VkPhysicalDevice handles.
+    std::vector<VkPhysicalDevice> devices(deviceCount);
+    vkEnumeratePhysicalDevices(getInstance(), &deviceCount, devices.data());
+
+
+    // check if any of the physical devices meet the requirements defined in isDeviceSuitable()
+    for (const auto& device : devices)
+    {
+        if (isDeviceSuitable(device, getSurface()))
+        {
+            setPhysicalDevice(device);
+            _msaaSamples = getMaxUsableSampleCount();
+            break; // early exit
+        }
+    }
+
+    if (getPhysicalDevice() == VK_NULL_HANDLE) {
+        throw std::runtime_error("failed to find a suitable GPU!");
+    }
+
+    infoLog() << "pickPhysicalDevice(): OK ";
+}
+
+
+/*
+ * Fetch max nb of samples
+ */
+VkSampleCountFlagBits VkContext::getMaxUsableSampleCount()
+{
+    VkPhysicalDeviceProperties physicalDeviceProperties;
+    vkGetPhysicalDeviceProperties(getPhysicalDevice(), &physicalDeviceProperties);
+
+    VkSampleCountFlags counts = physicalDeviceProperties.limits.framebufferColorSampleCounts & physicalDeviceProperties.limits.framebufferDepthSampleCounts;
+    if (counts & VK_SAMPLE_COUNT_64_BIT) { return VK_SAMPLE_COUNT_64_BIT; }
+    if (counts & VK_SAMPLE_COUNT_32_BIT) { return VK_SAMPLE_COUNT_32_BIT; }
+    if (counts & VK_SAMPLE_COUNT_16_BIT) { return VK_SAMPLE_COUNT_16_BIT; }
+    if (counts & VK_SAMPLE_COUNT_8_BIT) { return VK_SAMPLE_COUNT_8_BIT; }
+    if (counts & VK_SAMPLE_COUNT_4_BIT) { return VK_SAMPLE_COUNT_4_BIT; }
+    if (counts & VK_SAMPLE_COUNT_2_BIT) { return VK_SAMPLE_COUNT_2_BIT; }
+
+    return VK_SAMPLE_COUNT_1_BIT;
+}
+
+} // namespace CompGeom
