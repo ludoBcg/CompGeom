@@ -25,6 +25,7 @@ namespace CompGeom
 {
 
 class VkContext;
+class MassSpringSystem;
 
 
 /*
@@ -143,7 +144,11 @@ public:
 
     void cleanup(VkContext& _context);
 
-    void createQuad();
+    unsigned int id2Dto1D(unsigned int _i, unsigned int _j,
+                          unsigned int _nbVertI, unsigned int _nbVertJ);
+    void createGrid(const float _lengthSide, const unsigned int _nbVertPerSide);
+    bool buildMassSpringSystem(MassSpringSystem& _massSpringSystem);
+    bool readMassSpringSystem(MassSpringSystem& _massSpringSystem);
 
     void createVertexBuffer(VkContext& _context);
     void updateVertexBuffer(VkContext& _context);

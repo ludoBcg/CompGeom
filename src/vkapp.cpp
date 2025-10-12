@@ -78,9 +78,13 @@ void VkApp::initVulkan()
     createDepthResources();
     createFramebuffers();
 
-    m_mesh.createQuad();
+    // build grid geometry
+    m_mesh.createGrid(1.5f, 5);
     m_mesh.createVertexBuffer(*m_contextPtr);
     m_mesh.createIndexBuffer(*m_contextPtr);
+    m_mesh.buildMassSpringSystem(m_massSpringSystem);
+    m_massSpringSystem.print();
+
 
     createUniformBuffers();
     createDescriptorPool();
@@ -940,6 +944,8 @@ void VkApp::createSyncObjects()
  */
 void VkApp::updateGeom()
 {
+    m_massSpringSystem.iterate();
+    m_mesh.readMassSpringSystem(m_massSpringSystem);
     m_mesh.updateVertexBuffer(*m_contextPtr);
 }
 

@@ -21,6 +21,7 @@
 #include "vkcontext.h"
 #include "mesh.h"
 #include "image.h"
+#include "massspringsystem.h"
 
 
 namespace CompGeom
@@ -80,7 +81,7 @@ private:
 
     // Mesh contains vertex buffer and index buffer
     Mesh m_mesh;
-    
+    MassSpringSystem m_massSpringSystem;
 
     UniformBufferObject m_ubo{};
     glm::mat4 m_initModel;

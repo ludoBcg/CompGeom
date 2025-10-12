@@ -14,6 +14,9 @@ set(SRCS
 	src/vkapp.cpp
 	src/mesh.cpp
 	src/image.cpp
+	src/point.cpp
+	src/massspringsystem.cpp
+	src/numericalintegration.cpp
     )
     
 set(HEADERS
@@ -22,6 +25,9 @@ set(HEADERS
 	src/vkapp.h
 	src/mesh.h
 	src/image.h
+	src/point.h
+	src/massspringsystem.h
+	src/numericalintegration.h
     )
 
 	
