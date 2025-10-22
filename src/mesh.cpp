@@ -114,11 +114,41 @@ void Mesh::createGrid(const float _lengthSide, const unsigned int _nbVertPerSide
 bool Mesh::buildMassSpringSystem(MassSpringSystem& _massSpringSystem)
 {
     _massSpringSystem.clear();
+    std::vector<std::pair<unsigned int, unsigned int> > vertIds;
     
     for (int i = 0; i < m_vertices.size(); i++)
     {
         _massSpringSystem.addPoint(m_vertices.at(i).pos, 1.0f, 0.1f);
     }
+
+    for (int i = 0; i < m_indices.size(); i += 3)
+    {
+        unsigned int id0 = m_indices.at(i);
+        unsigned int id1 = m_indices.at(i + 1);
+        unsigned int id2 = m_indices.at(i + 2);
+
+        if( std::find(vertIds.begin(), vertIds.end(), std::make_pair(id0, id1)) == vertIds.end()
+         && std::find(vertIds.begin(), vertIds.end(), std::make_pair(id1, id0)) == vertIds.end() )
+        {
+            _massSpringSystem.addSpring(id0, id1, 0.25f);
+            vertIds.push_back(std::make_pair(id0, id1));
+        }
+
+        if( std::find(vertIds.begin(), vertIds.end(), std::make_pair(id1, id2)) == vertIds.end()
+         && std::find(vertIds.begin(), vertIds.end(), std::make_pair(id2, id1)) == vertIds.end() )
+        {
+            _massSpringSystem.addSpring(id1, id2, 0.25f);
+            vertIds.push_back(std::make_pair(id1, id2));
+        }
+
+        if( std::find(vertIds.begin(), vertIds.end(), std::make_pair(id2, id0)) == vertIds.end()
+         && std::find(vertIds.begin(), vertIds.end(), std::make_pair(id0, id2)) == vertIds.end() )
+        {
+            _massSpringSystem.addSpring(id2, id0, 0.25f);
+            vertIds.push_back(std::make_pair(id2, id0));
+        }
+    }
+
 
     return true;
 }

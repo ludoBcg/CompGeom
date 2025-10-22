@@ -45,7 +45,7 @@ void VkApp::initWindow()
     //glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
     // setup glfw window
-    m_window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan_demo", nullptr, nullptr);
+    m_window = glfwCreateWindow(WIDTH, HEIGHT, "CompGeom", nullptr, nullptr);
     glfwSetWindowUserPointer(m_window, this);
     glfwSetFramebufferSizeCallback(m_window, framebufferResizeCallback);
     glfwSetKeyCallback(m_window, keyCallback);
@@ -83,7 +83,7 @@ void VkApp::initVulkan()
     m_mesh.createVertexBuffer(*m_contextPtr);
     m_mesh.createIndexBuffer(*m_contextPtr);
     m_mesh.buildMassSpringSystem(m_massSpringSystem);
-    m_massSpringSystem.print();
+    //m_massSpringSystem.print();
 
 
     createUniformBuffers();
@@ -856,7 +856,7 @@ void VkApp::recordCommandBuffer(VkCommandBuffer _commandBuffer, uint32_t _imageI
     renderPassInfo.renderArea.extent = m_swapChainExtent;
 
     std::array<VkClearValue, 2> clearValues{};
-    clearValues[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
+    clearValues[0].color = { {0.0f, 0.0f, 0.05f, 1.0f} };
     clearValues[1].depthStencil = { 1.0f, 0 };
 
     renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
