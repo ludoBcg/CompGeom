@@ -15,6 +15,7 @@ set(SRCS
 	src/mesh.cpp
 	src/image.cpp
 	src/point.cpp
+	src/spring.cpp
 	src/massspringsystem.cpp
 	src/numericalintegration.cpp
     )
@@ -26,6 +27,7 @@ set(HEADERS
 	src/mesh.h
 	src/image.h
 	src/point.h
+	src/spring.h
 	src/massspringsystem.h
 	src/numericalintegration.h
     )
