@@ -36,7 +36,8 @@ class MassSpringSystem
         BACKWARD_EULER,   /* backward, implicit Euler */
         LEAPFROG,
         MIDPOINT,
-        VERLET
+        VERLET,
+        RK4               /* Runge-Kutta, 4th order */
     };
     
 
@@ -126,15 +127,21 @@ protected:
     |                                         ATTRIBUTES                                            |
     +-----------------------------------------------------------------------------------------------*/
 
-    std::vector<Point> m_pointsT;
-    std::vector<Point> m_pointsTinit;
-    std::vector<Point> m_pointsTtemp;
+    std::vector<Point> m_pointsT;       /*!< points at time T */
+    std::vector<Point> m_pointsTinit;   /*!< buffer to store points at a previous state*/
+
+    /*!< buffers to intermediate states of points in RK4 */
+    std::vector<Point> m_pointsK1;
+    std::vector<Point> m_pointsK2;
+    std::vector<Point> m_pointsK3;
+    std::vector<Point> m_pointsK4;
 
     std::vector<Spring> m_springs;
 
     NumericalIntegrationEuler m_integrationEuler;
     NumericalIntegrationVerlet m_integrationVerlet;
-    eNumIntegMethods m_numIntegMethod = eNumIntegMethods::VERLET;
+    NumericalIntegrationRK4 m_integrationRK4;
+    eNumIntegMethods m_numIntegMethod = eNumIntegMethods::RK4;
 
     unsigned int m_counter = 0;
 

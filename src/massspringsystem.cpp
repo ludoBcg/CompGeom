@@ -38,7 +38,11 @@ namespace CompGeom
 	{
 		m_pointsT.clear();
 		m_pointsTinit.clear();
-		m_pointsTtemp.clear();
+
+		m_pointsK1.clear();
+		m_pointsK2.clear();
+		m_pointsK3.clear();
+		m_pointsK4.clear();
 	}
 
 
@@ -260,6 +264,52 @@ namespace CompGeom
 					m_integrationVerlet.updatePosAndVel(m_pointsT, m_pointsTinit, damping, dt);
 					
 				}
+
+				break;
+			}
+			case eNumIntegMethods::RK4:
+			{
+				dt = 0.1f;
+
+				copyPoints(m_pointsT, m_pointsK1);
+				copyPoints(m_pointsT, m_pointsK2);
+				copyPoints(m_pointsT, m_pointsK3);
+				copyPoints(m_pointsT, m_pointsK4);
+
+				// calculate F_t
+				clearForces();
+				updateExternalForces();
+				updateInternalForces();
+				// copy P_0  in m_pointsTinit
+			    copyPoints(m_pointsT, m_pointsTinit);
+				
+				// k1 = F(t ,y(t) )
+			    // i.e., slope at initial position
+				m_integrationRK4.computeTempPosAndVel(m_pointsTinit, m_pointsT, m_pointsTinit, m_pointsK1, damping, 0 /*dt*/);
+				clearForces();
+				updateExternalForces();
+				updateInternalForces();
+				// k2 = F(t+(h/2) ,y(t) + (h/2)*k1 )
+				// i.e., slope at midpoint position, based on k1 estimation
+				m_integrationRK4.computeTempPosAndVel(m_pointsTinit, m_pointsT, m_pointsK1, m_pointsK2, damping, dt * 0.5);
+				clearForces();
+				updateExternalForces();
+				updateInternalForces();
+				// k3 = F(t+(h/2) ,y(t) + (h/2)*k2 )
+				// i.e., slope at midpoint position, based on k2 estimation
+				m_integrationRK4.computeTempPosAndVel(m_pointsTinit, m_pointsT, m_pointsK2, m_pointsK3, damping, dt * 0.5);
+				clearForces();
+				updateExternalForces();
+				updateInternalForces();
+				// k4 = F(t+h ,y(t) + h*k3 )
+				// i.e., slope at next position, based on k3 estimation
+				m_integrationRK4.computeTempPosAndVel(m_pointsTinit, m_pointsT, m_pointsK3, m_pointsK4, damping, dt);
+				clearForces();
+				updateExternalForces();
+				updateInternalForces();
+
+				copyPoints(m_pointsTinit, m_pointsT);
+				m_integrationRK4.computeFinalPos(m_pointsT, m_pointsTinit, m_pointsK1, m_pointsK2, m_pointsK3, m_pointsK4, damping, dt / 6.0);
 
 				break;
 			}

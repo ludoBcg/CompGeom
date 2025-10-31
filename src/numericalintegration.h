@@ -147,6 +147,66 @@ public:
  
 }; // class NumericalIntegrationVerlet
 
+
+/*!
+* \class NumericalIntegrationRK4
+* \brief Runge-Kutta method (fourth order)
+* 
+* Given y(t) = (p(t), v(t)),
+* y(t+1) is calculated with a a weighted average
+* y(t+1) = y(t) + (h/6)(k1 + 2k2 + 2k3 + k4)
+* 
+* with 4 increments:
+* k1 = F(t ,y(t) )
+* k2 = F(t+(h/2) ,y(t) + (h/2)*k1 )
+* k3 = F(t+(h/2) ,y(t) + (h/2)*k2 )
+* k4 = F(t+h ,y(t) + h*k3 )
+*/
+class NumericalIntegrationRK4
+{
+    
+public:
+
+    /*----------------------------------------------------------------------------------------------+
+    |                                        CONSTRUCTORS                                           |
+    +-----------------------------------------------------------------------------------------------*/
+
+    /*!
+    * \fn NumericalIntegrationRK4
+    * \brief Default constructor
+    */
+    NumericalIntegrationRK4() = default;
+
+    /*!
+    * \fn ~NumericalIntegrationRK4
+    * \brief Destructor
+    */
+    virtual ~NumericalIntegrationRK4() = default;
+
+
+    /*----------------------------------------------------------------------------------------------+
+    |                                        MISCELLANEOUS                                          |
+    +-----------------------------------------------------------------------------------------------*/
+
+    /*!
+    * \fn computeTempPosAndVel
+    * \brief Compute temporary positions and velocities for the next increment k_n
+    * \param _pointsT : list of points at time T
+    * \param _incrementF : list of previous increment k_n-1
+    * \param _dampFact : damping factor
+    * \param _dt : time step
+    */
+    void computeTempPosAndVel(std::vector<Point>& _pointsTinit, std::vector<Point>& _pointsT, 
+                              std::vector<Point>& _prevK, std::vector<Point>& _nextK,
+                              float _dampFact, float _dt);
+
+    void computeFinalPos(std::vector<Point>& _pointsT, std::vector<Point>& _pointsTinit,
+                         std::vector<Point>& _K1, std::vector<Point>& _K2,
+                         std::vector<Point>& _K3, std::vector<Point>& _K4,
+                         float _dampFact, float _dt);
+ 
+}; // class NumericalIntegrationRK4
+
 } // namespace CompGeom
 
 #endif // NUMERICALINTEGRATION_H
