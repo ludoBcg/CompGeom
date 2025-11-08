@@ -64,6 +64,7 @@ private:
     // images
     Image m_depthImage;     // depth buffer
     Image m_colorImage;     // image to store the desired number of samples per pixel
+    Image m_posImage;       // image to store geometry positions as RGB values
 
     // Command buffer (for each in-flight frame)
     std::vector<VkCommandBuffer> m_commandBuffers;
