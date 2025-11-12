@@ -350,23 +350,31 @@ void VkApp::createRenderPass()
     VkAttachmentReference depthAttachmentRef{};
     depthAttachmentRef.attachment = 2; // Depth attachment (ID=2)
     depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-    VkAttachmentReference colorAttachmentResolveRef{};
-    colorAttachmentResolveRef.attachment = 3; // Resolve attachment (ID=3)
-    colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    //VkAttachmentReference colorAttachmentResolveRef{};
+    //colorAttachmentResolveRef.attachment = 3; // Resolve attachment (ID=3)
+    //colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    std::array<VkAttachmentReference, 2> colorAttachmentResolvesRef{};
+    colorAttachmentResolvesRef.at(0).attachment = 3; // Resolve attachment (ID=3)
+    colorAttachmentResolvesRef.at(0).layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    colorAttachmentResolvesRef.at(1).attachment = 3; // Resolve attachment (ID=3)
+    colorAttachmentResolvesRef.at(1).layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
     // 3. Define subpasses ------------------------------------------------------
 	std::array<VkSubpassDescription, 1> subpassDescriptions{};
 
-    // @ TODO: first subpass for gbuffer rendering
+    // @@@ TODO: first subpass for gbuffer rendering
     // ...
 
 	// First subpass
-
 	subpassDescriptions.at(0).pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	subpassDescriptions.at(0).colorAttachmentCount = 1;
+    //@@@ one/two color attachments
+	subpassDescriptions.at(0).colorAttachmentCount = 2 /*1*/;
 	subpassDescriptions.at(0).pColorAttachments = colorReferencesRef.data();
 	subpassDescriptions.at(0).pDepthStencilAttachment = &depthAttachmentRef;
-    subpassDescriptions.at(0).pResolveAttachments = &colorAttachmentResolveRef;
+    // pResolveAttachments is NULL or a pointer to an array of 
+    // colorAttachmentCount VkAttachmentReference structures defining the 
+    // resolve attachments for this subpass and their layouts.
+    subpassDescriptions.at(0).pResolveAttachments = colorAttachmentResolvesRef.data();
 
     // Subpass dependencies for layout transitions
     std::array<VkSubpassDependency, 1> dependencies{};
@@ -392,7 +400,7 @@ void VkApp::createRenderPass()
         throw std::runtime_error("failed to create render pass!");
     }
 
-    infoLog() << "createRenderPassDEF(): OK ";
+    infoLog() << "createRenderPass(): OK ";
 }
 
 
@@ -426,6 +434,8 @@ void VkApp::createDescriptorSetLayout()
     if (vkCreateDescriptorSetLayout(m_contextPtr->getDevice(), &layoutInfo, nullptr, &m_descriptorSetLayout) != VK_SUCCESS) {
         throw std::runtime_error("failed to create descriptor set layout!");
     }
+
+    infoLog() << "createDescriptorSetLayout(): OK ";
 }
 
 
@@ -541,13 +551,24 @@ void VkApp::createGraphicsPipeline()
     colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
     colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
     colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+    VkPipelineColorBlendAttachmentState colorBlendAttachment2{};
+    colorBlendAttachment2.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+    colorBlendAttachment2.blendEnable = VK_TRUE;
+    colorBlendAttachment2.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+    colorBlendAttachment2.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    colorBlendAttachment2.colorBlendOp = VK_BLEND_OP_ADD;
+    colorBlendAttachment2.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+    colorBlendAttachment2.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+    colorBlendAttachment2.alphaBlendOp = VK_BLEND_OP_ADD;
+    VkPipelineColorBlendAttachmentState colorBlendAttachments[] = {colorBlendAttachment, colorBlendAttachment2};
 
     VkPipelineColorBlendStateCreateInfo colorBlending{};
     colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
     colorBlending.logicOpEnable = VK_FALSE;
     colorBlending.logicOp = VK_LOGIC_OP_COPY; // Optional
-    colorBlending.attachmentCount = 1;
-    colorBlending.pAttachments = &colorBlendAttachment;
+    //@@@ one/two color attachments
+    colorBlending.attachmentCount = 2 /*1*/;
+    colorBlending.pAttachments = &colorBlendAttachments[0];
     colorBlending.blendConstants[0] = 0.0f; // Optional
     colorBlending.blendConstants[1] = 0.0f; // Optional
     colorBlending.blendConstants[2] = 0.0f; // Optional
@@ -820,7 +841,6 @@ void VkApp::createDescriptorSets()
         bufferInfo.range = sizeof(UniformBufferObject);
 
         std::array<VkWriteDescriptorSet, 1> descriptorWrites{};
-
         descriptorWrites.at(0).sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites.at(0).dstSet = m_descriptorSets.at(i);
         descriptorWrites.at(0).dstBinding = 0;
