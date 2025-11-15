@@ -149,4 +149,4 @@ protected:
 
 } // namespace CompGeom
 
-#endif // POINT_H
+#endif // MASSSPRINGSYSTEM_H

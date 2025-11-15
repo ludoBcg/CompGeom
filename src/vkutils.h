@@ -152,6 +152,7 @@ namespace CompGeom
 
         if (enableValidationLayers) {
             extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME); // same as VK_EXT_debug_utils
+            //extensions.push_back(VK_EXT_SHADER_OBJECT_EXTENSION_NAME); 
         }
 
         infoLog() << "getRequiredExtensions(): OK ";
@@ -187,6 +188,18 @@ namespace CompGeom
             func(instance, debugMessenger, pAllocator);
         }
     }
+
+    //inline void CmdSetColorWriteMaskEXT(VkInstance instance,
+    //VkCommandBuffer                             commandBuffer,
+    //uint32_t                                    firstAttachment,
+    //uint32_t                                    attachmentCount,
+    //const VkColorComponentFlags*                pColorWriteMasks)
+    //{
+    //    auto func = (PFN_vkCmdSetColorWriteMaskEXT)vkGetInstanceProcAddr(instance, "vkCmdSetColorWriteMaskEXT");
+    //    if (func != nullptr) {
+    //        func(commandBuffer, firstAttachment, attachmentCount, pColorWriteMasks);
+    //    }
+    //}
 
 
     /*

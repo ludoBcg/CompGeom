@@ -68,7 +68,7 @@ namespace CompGeom
              m_pointsT.at(i).setForce(nullForce);
         }
 
-		// boundary conditions (temporarily hardcoded fo 5x5 grid)
+		// boundary conditions (temporarily hardcoded for 5x5 grid)
 		m_pointsT.at(0).setFixed(true);
 		m_pointsT.at(1).setFixed(true);
 		m_pointsT.at(2).setFixed(true);
@@ -97,7 +97,7 @@ namespace CompGeom
 		glm::vec3 targetPos(0.0, 0.0, 1.0);
         glm::vec3 forceVec = glm::normalize(targetPos - m_pointsT.at(12).getPosition()) * 0.25f; 
 
-		// apply force on one point (temporarily hardcoded fo 5x5 grid)
+		// apply force on one point (temporarily hardcoded for 5x5 grid)
 		m_pointsT.at(12).addForce(forceVec);
 	}
 

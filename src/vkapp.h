@@ -22,6 +22,7 @@
 #include "mesh.h"
 #include "image.h"
 #include "massspringsystem.h"
+#include "arap.h"
 
 
 namespace CompGeom
@@ -83,6 +84,7 @@ private:
     // Mesh contains vertex buffer and index buffer
     Mesh m_mesh;
     MassSpringSystem m_massSpringSystem;
+    Arap m_arap;
 
     UniformBufferObject m_ubo{};
     glm::mat4 m_initModel;

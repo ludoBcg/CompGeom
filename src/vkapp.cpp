@@ -84,6 +84,7 @@ void VkApp::initVulkan()
     m_mesh.createIndexBuffer(*m_contextPtr);
     m_mesh.buildMassSpringSystem(m_massSpringSystem);
     //m_massSpringSystem.print();
+    m_mesh.buildARAP(m_arap);
 
 
     createUniformBuffers();
@@ -350,9 +351,6 @@ void VkApp::createRenderPass()
     VkAttachmentReference depthAttachmentRef{};
     depthAttachmentRef.attachment = 2; // Depth attachment (ID=2)
     depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-    //VkAttachmentReference colorAttachmentResolveRef{};
-    //colorAttachmentResolveRef.attachment = 3; // Resolve attachment (ID=3)
-    //colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     std::array<VkAttachmentReference, 2> colorAttachmentResolvesRef{};
     colorAttachmentResolvesRef.at(0).attachment = 3; // Resolve attachment (ID=3)
     colorAttachmentResolvesRef.at(0).layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -365,11 +363,11 @@ void VkApp::createRenderPass()
     // @@@ TODO: first subpass for gbuffer rendering
     // ...
 
-	// First subpass
+	// First subpass for both color attachments rendering
 	subpassDescriptions.at(0).pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     //@@@ one/two color attachments
-	subpassDescriptions.at(0).colorAttachmentCount = 2 /*1*/;
-	subpassDescriptions.at(0).pColorAttachments = colorReferencesRef.data();
+	subpassDescriptions.at(0).colorAttachmentCount = 2; //number of color attachments this subpass will WRITE to
+	subpassDescriptions.at(0).pColorAttachments = colorReferencesRef.data(); // color OUTPUTS
 	subpassDescriptions.at(0).pDepthStencilAttachment = &depthAttachmentRef;
     // pResolveAttachments is NULL or a pointer to an array of 
     // colorAttachmentCount VkAttachmentReference structures defining the 
@@ -567,7 +565,7 @@ void VkApp::createGraphicsPipeline()
     colorBlending.logicOpEnable = VK_FALSE;
     colorBlending.logicOp = VK_LOGIC_OP_COPY; // Optional
     //@@@ one/two color attachments
-    colorBlending.attachmentCount = 2 /*1*/;
+    colorBlending.attachmentCount = 2/* 1*/;
     colorBlending.pAttachments = &colorBlendAttachments[0];
     colorBlending.blendConstants[0] = 0.0f; // Optional
     colorBlending.blendConstants[1] = 0.0f; // Optional
@@ -579,6 +577,7 @@ void VkApp::createGraphicsPipeline()
     std::vector<VkDynamicState> dynamicStates = {
             VK_DYNAMIC_STATE_VIEWPORT,
             VK_DYNAMIC_STATE_SCISSOR
+            //VK_DYNAMIC_STATE_COLOR_WRITE_MASK_EXT
     };
     VkPipelineDynamicStateCreateInfo dynamicState{};
     dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
@@ -941,6 +940,9 @@ void VkApp::recordCommandBuffer(VkCommandBuffer _commandBuffer, uint32_t _imageI
 
         // Bind descriptors (i.e., uniforms)
         vkCmdBindDescriptorSets(_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &m_descriptorSets[m_currentFrame], 0, nullptr);
+
+        //VkColorComponentFlags colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+        //CmdSetColorWriteMaskEXT(m_contextPtr->getInstance(), _commandBuffer, 0, 1, &colorWriteMask);
 
         // Issue draw command !
         //vkCmdDraw(_commandBuffer, static_cast<uint32_t>(m_vertices.size()), 1, 0, 0); // unindexed vertex buffer version

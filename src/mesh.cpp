@@ -12,6 +12,7 @@
 #include "mesh.h"
 #include "vkcontext.h"
 #include "massspringsystem.h"
+#include "arap.h"
 
 #include <iterator>
 #include <algorithm>
@@ -38,8 +39,8 @@ void Mesh::cleanup(VkContext& _context)
 /*
  * Convert 2d Grid Cartesian coords into row-major 1D index
  */
-unsigned int Mesh::id2Dto1D(unsigned int _i, unsigned int _j,
-                            unsigned int _nbVertI, unsigned int _nbVertJ)
+unsigned int Mesh::id2Dto1D(const unsigned int _i, const unsigned int _j,
+                            const unsigned int _nbVertI, const unsigned int _nbVertJ) const
 {
     assert(_i < _nbVertI && _i < _nbVertJ);
     return (_i % _nbVertI + _j * _nbVertI);
@@ -55,6 +56,9 @@ void Mesh::createGrid(const float _lengthSide, const unsigned int _nbVertPerSide
 {
     m_vertices.clear();
     m_indices.clear();
+    m_adjacency.clear();
+    // initializes empty adjacency matrix
+    m_adjacency = std::vector<std::vector<bool> >(_nbVertPerSide*_nbVertPerSide, std::vector<bool> (_nbVertPerSide*_nbVertPerSide, false));
 
     // Example of tesselation:
     // _lengthSide = 1.0, _nbVertPerSide=3
@@ -91,20 +95,69 @@ void Mesh::createGrid(const float _lengthSide, const unsigned int _nbVertPerSide
     {
         for(unsigned int j=1; j<_nbVertPerSide; j++)
         {
+            // For each square cell in the grid, get indices of the 4 vertices
             unsigned int id0 = id2Dto1D(i-1, j-1, _nbVertPerSide, _nbVertPerSide);
             unsigned int id1 = id2Dto1D(i, j-1, _nbVertPerSide, _nbVertPerSide);
             unsigned int id2 = id2Dto1D(i-1, j, _nbVertPerSide, _nbVertPerSide);
             unsigned int id3 = id2Dto1D(i, j, _nbVertPerSide, _nbVertPerSide);
 
+            // Add indices to the list to define 2 triangles in clockwise order
+            // First triangle (0,1,3)
             m_indices.push_back(id0);
-            m_indices.push_back(id1);
+            m_indices.push_back(id1); 
             m_indices.push_back(id3);
+            // Second triangle (3,2,0)
             m_indices.push_back(id3);
             m_indices.push_back(id2);
             m_indices.push_back(id0);
+
+            // Add corresponding edges in the adjacency matrix
+            // Edge (0,1)
+            m_adjacency.at(id0).at(id1) = m_adjacency.at(id1).at(id0) = true;
+            // Edge (0,2) 
+            m_adjacency.at(id0).at(id2) = m_adjacency.at(id2).at(id0) = true;
+            // Edge (0,3)
+            m_adjacency.at(id0).at(id3) = m_adjacency.at(id3).at(id0) = true;
+            // Edge (1,3)
+            m_adjacency.at(id1).at(id3) = m_adjacency.at(id3).at(id1) = true;
+            // Edge (2,3)
+            m_adjacency.at(id2).at(id3) = m_adjacency.at(id3).at(id2) = true;
         }
     }
-    Point pt(glm::vec3(0), 1, 1);
+}
+
+
+/*
+ * Check if adjacency matrix is empty (i.e., contains only false) 
+ */
+bool Mesh::isAdjacencyEmpty() const
+{
+    
+    bool isEmpty = std::all_of(m_adjacency.begin(), m_adjacency.end(),
+                               [](const std::vector<bool>& _vec)
+                                {
+                                       return std::all_of(_vec.begin(), _vec.end(),
+                                                          [](bool _value){ return _value == false; });
+                                });
+
+    return isEmpty;
+}
+
+
+/*
+ * Calculates the degree of a given vertex
+ * (i.e., number of connected vertices in the first-ring neighborhood) 
+ */
+unsigned int Mesh::getVertexDegree(const unsigned int _id) const
+{
+
+    unsigned int cpt = 0;
+    for (auto it = m_adjacency.at(_id).begin(); it != m_adjacency.at(_id).end(); ++it)
+    {
+        if(*it == true)
+            cpt++;
+    }
+    return cpt;
 }
 
 
@@ -172,6 +225,23 @@ bool Mesh::readMassSpringSystem(MassSpringSystem& _massSpringSystem)
         m_vertices.at(i).pos = _massSpringSystem.getPointsT().at(i).getPosition();
     }   
     
+    return true;
+}
+
+
+/*
+ * Builds a arap
+ */
+bool Mesh::buildARAP(Arap& _arap)
+{
+    std::vector<glm::vec3> verticesPos;
+    for (auto it = m_vertices.begin(); it != m_vertices.end(); ++it)
+    {
+        verticesPos.push_back(it->pos);
+    }   
+    _arap.initialize(verticesPos, m_adjacency);
+    verticesPos.clear();
+
     return true;
 }
 

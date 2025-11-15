@@ -18,6 +18,7 @@ set(SRCS
 	src/spring.cpp
 	src/massspringsystem.cpp
 	src/numericalintegration.cpp
+	src/arap.cpp
     )
     
 set(HEADERS
@@ -30,6 +31,7 @@ set(HEADERS
 	src/spring.h
 	src/massspringsystem.h
 	src/numericalintegration.h
+	src/arap.h
     )
 
 	
