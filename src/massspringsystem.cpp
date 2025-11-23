@@ -34,6 +34,14 @@ namespace CompGeom
 	}
 
 
+	void MassSpringSystem::addConstraints(std::vector<uint32_t>& _fixedConstraints, std::vector<std::pair<uint32_t, glm::vec3> > _movingConstraint)
+	{
+		m_fixedConstraints = _fixedConstraints;
+		m_movingConstraints = _movingConstraint;
+		m_extForceFactor = 0.25f;
+	}
+
+
 	void MassSpringSystem::clear()
 	{
 		m_pointsT.clear();
@@ -69,37 +77,29 @@ namespace CompGeom
         }
 
 		// boundary conditions (temporarily hardcoded for 5x5 grid)
-		m_pointsT.at(0).setFixed(true);
-		m_pointsT.at(1).setFixed(true);
-		m_pointsT.at(2).setFixed(true);
-		m_pointsT.at(3).setFixed(true);
-		m_pointsT.at(4).setFixed(true);
-
-		m_pointsT.at(5).setFixed(true);
-		m_pointsT.at(10).setFixed(true);
-		m_pointsT.at(15).setFixed(true);
-
-		m_pointsT.at(9).setFixed(true);
-		m_pointsT.at(14).setFixed(true);
-		m_pointsT.at(19).setFixed(true);
-
-		m_pointsT.at(20).setFixed(true);
-		m_pointsT.at(21).setFixed(true);
-		m_pointsT.at(22).setFixed(true);
-		m_pointsT.at(23).setFixed(true);
-		m_pointsT.at(24).setFixed(true);
+		for (auto it = m_fixedConstraints.begin(); it != m_fixedConstraints.end(); ++it)
+		{
+			m_pointsT.at(*it).setFixed(true);
+		}
 		
 	}
 
 
 	void MassSpringSystem::updateExternalForces()
 	{
-		glm::vec3 targetPos(0.0, 0.0, 1.0);
-        glm::vec3 forceVec = glm::normalize(targetPos - m_pointsT.at(12).getPosition()) * 0.25f; 
-
-		// apply force on one point (temporarily hardcoded for 5x5 grid)
-		m_pointsT.at(12).addForce(forceVec);
+		// apply force on moving constraints (temporarily hardcoded for 5x5 grid)
+		for (auto it = m_movingConstraints.begin(); it != m_movingConstraints.end(); ++it)
+		{
+			glm::vec3 targetPos = it->second;
+			glm::vec3 constraintPos = m_pointsT.at(it->first).getPosition();
+			glm::vec3 forceVec = targetPos - constraintPos;
+			if(glm::length(forceVec) > m_extForceFactor)
+				forceVec = glm::normalize(forceVec) * m_extForceFactor; 
+			m_pointsT.at(it->first).addForce(forceVec);
+		}
+		
 	}
+
 
 	void MassSpringSystem::updateInternalForces()
 	{
@@ -269,7 +269,7 @@ namespace CompGeom
 			}
 			case eNumIntegMethods::RK4:
 			{
-				dt = 0.1f;
+				dt = 0.2f;
 
 				copyPoints(m_pointsT, m_pointsK1);
 				copyPoints(m_pointsT, m_pointsK2);
@@ -291,13 +291,13 @@ namespace CompGeom
 				updateInternalForces();
 				// k2 = F(t+(h/2) ,y(t) + (h/2)*k1 )
 				// i.e., slope at midpoint position, based on k1 estimation
-				m_integrationRK4.computeTempPosAndVel(m_pointsTinit, m_pointsT, m_pointsK1, m_pointsK2, damping, dt * 0.5);
+				m_integrationRK4.computeTempPosAndVel(m_pointsTinit, m_pointsT, m_pointsK1, m_pointsK2, damping, dt * 0.5f);
 				clearForces();
 				updateExternalForces();
 				updateInternalForces();
 				// k3 = F(t+(h/2) ,y(t) + (h/2)*k2 )
 				// i.e., slope at midpoint position, based on k2 estimation
-				m_integrationRK4.computeTempPosAndVel(m_pointsTinit, m_pointsT, m_pointsK2, m_pointsK3, damping, dt * 0.5);
+				m_integrationRK4.computeTempPosAndVel(m_pointsTinit, m_pointsT, m_pointsK2, m_pointsK3, damping, dt * 0.5f);
 				clearForces();
 				updateExternalForces();
 				updateInternalForces();
@@ -309,7 +309,7 @@ namespace CompGeom
 				updateInternalForces();
 
 				copyPoints(m_pointsTinit, m_pointsT);
-				m_integrationRK4.computeFinalPos(m_pointsT, m_pointsTinit, m_pointsK1, m_pointsK2, m_pointsK3, m_pointsK4, damping, dt / 6.0);
+				m_integrationRK4.computeFinalPos(m_pointsT, m_pointsTinit, m_pointsK1, m_pointsK2, m_pointsK3, m_pointsK4, damping, dt / 6.0f);
 
 				break;
 			}

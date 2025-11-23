@@ -20,12 +20,6 @@
 namespace CompGeom
 {
 
-/*!
-* \class MassSpringSystem
-* \brief ...
-*/
-class MassSpringSystem
-{
     /*!
      * List of numerical integration methods
      */
@@ -34,12 +28,18 @@ class MassSpringSystem
         FORWARD_EULER,    /* forward, explicit Euler */
         SYMPLECTIC_EULER, /* forward, semi-implicit Euler */
         BACKWARD_EULER,   /* backward, implicit Euler */
-        LEAPFROG,
-        MIDPOINT,
-        VERLET,
+        LEAPFROG,         /* leap frog */
+        MIDPOINT,         /* mid-point */
+        VERLET,           /* Verlet */
         RK4               /* Runge-Kutta, 4th order */
     };
-    
+
+/*!
+* \class MassSpringSystem
+* \brief ...
+*/
+class MassSpringSystem
+{
 
 public:
 
@@ -66,6 +66,11 @@ public:
     +-----------------------------------------------------------------------------------------------*/
 
     /*!
+    * \fn setNumIntegMethod
+    */
+    inline void setNumIntegMethod(eNumIntegMethods _numIntegMethod) { m_numIntegMethod = _numIntegMethod; }
+
+    /*!
     * \fn getPointsT
     */
     inline std::vector<Point>& getPointsT() { return m_pointsT; }
@@ -87,6 +92,8 @@ public:
     */
     void addSpring(const unsigned int _idPt1, const unsigned int _idPt2, const float _stiffness);
     
+
+    void addConstraints(std::vector<uint32_t>& _fixedConstraints, std::vector<std::pair<uint32_t, glm::vec3> > _movingConstraint);
 
     /*!
     * \fn clear
@@ -138,9 +145,19 @@ protected:
 
     std::vector<Spring> m_springs;
 
+    std::vector<uint32_t> m_fixedConstraints; /* each fixed constraint point is identified by its id */
+    std::vector<std::pair<uint32_t, glm::vec3> > m_movingConstraints; /* each moving constraint point is identified by its id and target position */
+    float m_extForceFactor = 1.0f;
+
     NumericalIntegrationEuler m_integrationEuler;
     NumericalIntegrationVerlet m_integrationVerlet;
     NumericalIntegrationRK4 m_integrationRK4;
+    //eNumIntegMethods m_numIntegMethod = eNumIntegMethods::FORWARD_EULER;
+    //eNumIntegMethods m_numIntegMethod = eNumIntegMethods::SYMPLECTIC_EULER;
+    //eNumIntegMethods m_numIntegMethod = eNumIntegMethods::BACKWARD_EULER;
+    //eNumIntegMethods m_numIntegMethod = eNumIntegMethods::LEAPFROG;
+    //eNumIntegMethods m_numIntegMethod = eNumIntegMethods::MIDPOINT;
+    //eNumIntegMethods m_numIntegMethod = eNumIntegMethods::VERLET;
     eNumIntegMethods m_numIntegMethod = eNumIntegMethods::RK4;
 
     unsigned int m_counter = 0;
