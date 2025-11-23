@@ -36,7 +36,7 @@ namespace CompGeom
 */
 class Arap
 {
-    typedef Eigen::SimplicialLLT<Eigen::SparseMatrix<double>, Eigen::Upper>  STSimplicialLLT;
+    typedef Eigen::SimplicialLLT<Eigen::SparseMatrix<double>, Eigen::Upper> ArapSimplicialLLT;
         
 
 public:
@@ -69,16 +69,79 @@ public:
     |                                        MISCELLANEOUS                                          |
     +-----------------------------------------------------------------------------------------------*/
 
-    void initialize(std::vector<glm::vec3>& _vertices, std::vector<std::vector<bool> >& _adjacency);
+    bool initialize(std::vector<glm::vec3>& _vertices, std::vector<std::vector<bool> >& _adjacency,
+                    std::vector<std::pair<uint32_t, glm::vec3> >& _anchors, double _anchorsWeight);
+
+    /*!
+    * \fn buildMatrixL
+    * \brief Build Laplacaian matrix
+    */
+    bool buildMatrixL();
+
+    /*!
+    * \fn initGuessMatrixX
+    * \brief First iteration to fill-in matrix X 
+    */
+    bool initGuessMatrixX();
+
+    /*!
+    * \fn extractRot
+    * \brief Calculates rigid transformation 
+    */
+    int extractRot(const Eigen::Matrix3d& _matJ, Eigen::Matrix3d& _matR);
+
+    /*!
+    * \fn localStep
+    * \brief Computes optimal transformation from x (in matrix B) to x' (in matrix X)
+    */
+    int localStep();
+
+    /*!
+    * \fn globalStep
+    * \brief Solve LX=B system to update values of X
+    */
+    int globalStep();
+
+    /*!
+    * \fn l2Energy
+    */
+    double l2Energy();
     
+    /*!
+    * \fn getResult
+    * \brief Returns new vertices' coords from matrix X
+    */
+    std::vector<glm::vec3> getResult();
+
+    /*!
+    * \fn updateConstraints
+    * \brief Moves anchors' positions for live animation
+    */
+    void updateAnchors();
+
+    /*!
+    * \fn solve
+    * \brief Complete solving process, i.e., one iteration for live animation
+    */
+    int solve(double _eps);
+
 protected:
 
     /*----------------------------------------------------------------------------------------------+
     |                                         ATTRIBUTES                                            |
     +-----------------------------------------------------------------------------------------------*/
 
-    STSimplicialLLT m_llt;                /*!< sparse Cholesky decomposition from the Laplacian matrix if the mesh */
-    std::vector<Eigen::Matrix3d> m_rot;   /*!< list of local rotation matrices */
+    ArapSimplicialLLT m_llt;                /*!< sparse Cholesky decomposition from the Laplacian matrix if the mesh */
+    std::vector<Eigen::Matrix3d> m_rot;     /*!< list of local rotation matrices */
+    Eigen::MatrixX3d m_matX;                /*!< X matrix (coordinates of vertices) */
+
+    std::vector<std::pair<uint32_t, glm::vec3> > m_anchors; /* each anchor point is identified by its id and target position */
+    double m_anchorsWeight = 1.0;   /* anchors' weight */
+    double m_edgesWeight = 1.0;     /* edges' weight, we use constant weight instead of cotan weights */
+    glm::vec3 m_backupMovingAnchor;
+
+    std::vector<glm::vec3> m_initVertices;       /* initial vertices */
+    std::vector<std::vector<bool> > m_adjacency; /* adjacency matrix */
 
 }; // class Arap
 

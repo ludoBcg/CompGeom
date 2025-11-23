@@ -19,8 +19,6 @@ namespace CompGeom
 {
 
 
-
-
 /*
  * Main app execution
  */
@@ -57,6 +55,71 @@ void VkApp::initWindow()
 }
 
 /*
+ * Initializes mesh geometry and animation model 
+ */
+void VkApp::initGeomModel()
+{
+    // build grid geometry
+    m_mesh.createGrid(1.5f, 5);
+    m_mesh.createVertexBuffer(*m_contextPtr);
+    m_mesh.createIndexBuffer(*m_contextPtr);
+
+    if (ANIMATION_MODEL != eAnimationModels::ARAP)
+    {
+        m_mesh.buildMassSpringSystem(m_massSpringSystem);
+    }
+
+    switch (ANIMATION_MODEL)
+    {
+        case eAnimationModels::MS_FWE:
+        {
+            m_massSpringSystem.setNumIntegMethod(eNumIntegMethods::FORWARD_EULER);
+            break;
+        }
+        case eAnimationModels::MS_SE:
+        {
+            m_massSpringSystem.setNumIntegMethod(eNumIntegMethods::SYMPLECTIC_EULER);
+            break;
+        }
+        case eAnimationModels::MS_BWE:
+        {
+            m_massSpringSystem.setNumIntegMethod(eNumIntegMethods::BACKWARD_EULER);
+            break;
+        }
+        case eAnimationModels::MS_LF:
+        {
+            m_massSpringSystem.setNumIntegMethod(eNumIntegMethods::LEAPFROG);
+            break;
+        }
+        case eAnimationModels::MS_MID:
+        {
+            m_massSpringSystem.setNumIntegMethod(eNumIntegMethods::MIDPOINT);
+            break;
+        }
+        case eAnimationModels::MS_VER:
+        {
+            m_massSpringSystem.setNumIntegMethod(eNumIntegMethods::VERLET);
+            break;
+        }
+        case eAnimationModels::MS_RK4:
+        {
+            m_massSpringSystem.setNumIntegMethod(eNumIntegMethods::RK4);
+            break;
+        }
+        case eAnimationModels::ARAP:
+        {
+            m_mesh.buildARAP(m_arap);
+            m_mesh.readARAP(m_arap);
+            m_mesh.updateVertexBuffer(*m_contextPtr);
+
+            break;
+        }
+    }
+
+
+}
+
+/*
  * Initializes Vulkan 
  */
 void VkApp::initVulkan()
@@ -78,14 +141,7 @@ void VkApp::initVulkan()
     createDepthResources();
     createFramebuffers();
 
-    // build grid geometry
-    m_mesh.createGrid(1.5f, 5);
-    m_mesh.createVertexBuffer(*m_contextPtr);
-    m_mesh.createIndexBuffer(*m_contextPtr);
-    m_mesh.buildMassSpringSystem(m_massSpringSystem);
-    //m_massSpringSystem.print();
-    m_mesh.buildARAP(m_arap);
-
+    initGeomModel();
 
     createUniformBuffers();
     createDescriptorPool();
@@ -1002,9 +1058,18 @@ void VkApp::createSyncObjects()
  */
 void VkApp::updateGeom()
 {
-    m_massSpringSystem.iterate();
-    m_mesh.readMassSpringSystem(m_massSpringSystem);
-    m_mesh.updateVertexBuffer(*m_contextPtr);
+    if (ANIMATION_MODEL != eAnimationModels::ARAP)
+    {
+        m_massSpringSystem.iterate();
+        m_mesh.readMassSpringSystem(m_massSpringSystem);
+    }
+    else
+    {
+        m_arap.updateAnchors();
+        m_arap.solve(1e-6);
+        m_mesh.readARAP(m_arap);
+    }
+     m_mesh.updateVertexBuffer(*m_contextPtr);
 }
 
 

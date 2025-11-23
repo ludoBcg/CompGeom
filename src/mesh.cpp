@@ -124,6 +124,10 @@ void Mesh::createGrid(const float _lengthSide, const unsigned int _nbVertPerSide
             m_adjacency.at(id2).at(id3) = m_adjacency.at(id3).at(id2) = true;
         }
     }
+
+    // Temporary definition of hard-coded boundary conditions
+    m_fixedPointsIds = { 0, 4, 20, 24 };
+    m_constraintPoints = { std::make_pair<uint32_t, glm::vec3>(12, glm::vec3(0.0, 0.0, 1.0) /*target pos*/) };
 }
 
 
@@ -167,6 +171,7 @@ unsigned int Mesh::getVertexDegree(const unsigned int _id) const
 bool Mesh::buildMassSpringSystem(MassSpringSystem& _massSpringSystem)
 {
     _massSpringSystem.clear();
+
     std::vector<std::pair<unsigned int, unsigned int> > vertIds;
     
     for (int i = 0; i < m_vertices.size(); i++)
@@ -202,6 +207,7 @@ bool Mesh::buildMassSpringSystem(MassSpringSystem& _massSpringSystem)
         }
     }
 
+    _massSpringSystem.addConstraints(m_fixedPointsIds, m_constraintPoints);
 
     return true;
 }
@@ -239,8 +245,52 @@ bool Mesh::buildARAP(Arap& _arap)
     {
         verticesPos.push_back(it->pos);
     }   
-    _arap.initialize(verticesPos, m_adjacency);
+
+
+    std::vector<std::pair<uint32_t, glm::vec3> > anchors;
+    for (uint32_t i = 0; i < m_fixedPointsIds.size(); ++i)
+    {
+        // add fixed points as anchors
+        uint32_t id = m_fixedPointsIds.at(i);
+        // use initial vertex coords as target position
+        glm::vec3 position = verticesPos.at(m_fixedPointsIds.at(i));
+        anchors.push_back(std::make_pair(id, position));
+    }
+    for (uint32_t i = 0; i < m_constraintPoints.size(); ++i)
+    {
+        // add constraint points as anchors
+        uint32_t id = m_constraintPoints.at(i).first;
+        glm::vec3 position = m_constraintPoints.at(i).second;
+        anchors.push_back(std::make_pair(id, position));
+    }
+
+    _arap.initialize(verticesPos, m_adjacency, anchors, 50.0);
+
     verticesPos.clear();
+
+    return true;
+}
+
+
+/*
+ * Updates the tesselation from arap state
+ */
+bool Mesh::readARAP(Arap& _arap)
+{
+    std::vector<glm::vec3> newPos = _arap.getResult();
+
+    assert(m_vertices.size() == newPos.size()) ;
+
+    if (m_vertices.size() != newPos.size())
+    {
+        std::cerr << "m_vertices.size() != _arap.getResult().size() " << std::endl;
+        return false;
+    }
+
+    for (int i = 0; i < m_vertices.size(); i++)
+    {
+        m_vertices.at(i).pos = newPos.at(i);
+    }   
 
     return true;
 }

@@ -31,7 +31,23 @@ namespace CompGeom
 
 class VkApp
 {
+
+    enum class eAnimationModels
+    {
+        MS_FWE,     /* Mass-spring forward Euler */
+        MS_SE,      /* Mass-spring symplectic Euler */
+        MS_BWE,     /* Mass-spring backward Euler */
+        MS_LF,      /* Mass-spring leapfrog */
+        MS_MID,     /* Mass-spring midpoint */
+        MS_VER,     /* Mass-spring Verlet */
+        MS_RK4,     /* Mass-spring RK4 */
+        ARAP        /* Arap */
+    };
+
+    const eAnimationModels ANIMATION_MODEL = eAnimationModels::ARAP;
+
     const int MAX_FRAMES_IN_FLIGHT = 2;
+
 
 public:
 
@@ -99,6 +115,8 @@ private:
     // Descriptors (i.e., uniforms)
     VkDescriptorPool m_descriptorPool;
     std::vector<VkDescriptorSet>  m_descriptorSets;
+
+    void initGeomModel();
 
     // main steps of run()
     void initWindow();

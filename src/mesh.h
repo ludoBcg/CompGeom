@@ -152,6 +152,7 @@ public:
     bool buildMassSpringSystem(MassSpringSystem& _massSpringSystem);
     bool readMassSpringSystem(MassSpringSystem& _massSpringSystem);
     bool buildARAP(Arap& _arap);
+    bool readARAP(Arap& _arap);
 
     void createVertexBuffer(VkContext& _context);
     void updateVertexBuffer(VkContext& _context);
@@ -165,6 +166,11 @@ protected:
     std::vector<uint32_t> m_indices;
     // Adjacency matrix
     std::vector<std::vector<bool> > m_adjacency;
+
+    // List of fixed point
+    std::vector<uint32_t> m_fixedPointsIds;
+    // List of constraint point (Id, target pos)
+    std::vector<std::pair<uint32_t, glm::vec3> > m_constraintPoints;
 
     // Vertex buffer
     VkBuffer m_vertexBuffer;
