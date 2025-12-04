@@ -210,8 +210,11 @@ void VkApp::cleanup()
 
     m_mesh.cleanup(*m_contextPtr);
 
+    vkDestroyPipeline(m_contextPtr->getDevice(), m_graphicsPipelineOffscreen, nullptr);
     vkDestroyPipeline(m_contextPtr->getDevice(), m_graphicsPipeline, nullptr);
+    vkDestroyPipelineLayout(m_contextPtr->getDevice(), m_pipelineLayoutOffscreen, nullptr);
     vkDestroyPipelineLayout(m_contextPtr->getDevice(), m_pipelineLayout, nullptr);
+    
 
     vkDestroyRenderPass(m_contextPtr->getDevice(), m_renderPass, nullptr);
 
@@ -361,7 +364,7 @@ void VkApp::createRenderPass()
 {
     // 1. Define attachments ------------------------------------------------------
     std::array<VkAttachmentDescription, 4> attachments{};
-    // Color attachment (ID=0)
+    // Color attachment for offscreen rendering (ID=0)
     attachments.at(0).format = m_swapChainImageFormat;
     attachments.at(0).samples = m_msaaSamples;
     attachments.at(0).loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -370,7 +373,7 @@ void VkApp::createRenderPass()
     attachments.at(0).stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     attachments.at(0).initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     attachments.at(0).finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    // Second color attachment for position gbuffer (ID=1)
+    // Color attachment for onscreen rendering(ID=1)
     attachments.at(1).format = m_swapChainImageFormat;
     attachments.at(1).samples = m_msaaSamples;
     attachments.at(1).loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -399,11 +402,11 @@ void VkApp::createRenderPass()
     attachments.at(3).finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
     // 2. Create attachment references ------------------------------------------
-    std::array<VkAttachmentReference, 2> colorReferencesRef{};
-	colorReferencesRef.at(0).attachment = 0; // Color attachment (ID=0)
-    colorReferencesRef.at(0).layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    colorReferencesRef.at(1).attachment = 1; // Color attachment (ID=1)
-    colorReferencesRef.at(1).layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    std::array<VkAttachmentReference, 2> colorAttachmentsRef{};
+	colorAttachmentsRef.at(0).attachment = 0; // Color attachment (ID=0)
+    colorAttachmentsRef.at(0).layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    colorAttachmentsRef.at(1).attachment = 1; // Color attachment (ID=1)
+    colorAttachmentsRef.at(1).layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     VkAttachmentReference depthAttachmentRef{};
     depthAttachmentRef.attachment = 2; // Depth attachment (ID=2)
     depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
@@ -414,30 +417,43 @@ void VkApp::createRenderPass()
     colorAttachmentResolvesRef.at(1).layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
     // 3. Define subpasses ------------------------------------------------------
-	std::array<VkSubpassDescription, 1> subpassDescriptions{};
+	std::array<VkSubpassDescription, 2> subpassDescriptions{};
 
-    // @@@ TODO: first subpass for gbuffer rendering
-    // ...
-
-	// First subpass for both color attachments rendering
+    
+	// First subpass for offscreen rendering
 	subpassDescriptions.at(0).pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    //@@@ one/two color attachments
-	subpassDescriptions.at(0).colorAttachmentCount = 2; //number of color attachments this subpass will WRITE to
-	subpassDescriptions.at(0).pColorAttachments = colorReferencesRef.data(); // color OUTPUTS
+	subpassDescriptions.at(0).colorAttachmentCount = 1; //number of color attachments this subpass will WRITE to
+	subpassDescriptions.at(0).pColorAttachments = colorAttachmentsRef.data(); // color OUTPUTS
 	subpassDescriptions.at(0).pDepthStencilAttachment = &depthAttachmentRef;
     // pResolveAttachments is NULL or a pointer to an array of 
     // colorAttachmentCount VkAttachmentReference structures defining the 
     // resolve attachments for this subpass and their layouts.
     subpassDescriptions.at(0).pResolveAttachments = colorAttachmentResolvesRef.data();
 
+    // Second subpass for onscreen rendering
+	subpassDescriptions.at(1).pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	subpassDescriptions.at(1).colorAttachmentCount = 1;
+	subpassDescriptions.at(1).pColorAttachments = &colorAttachmentsRef.at(1);
+	subpassDescriptions.at(1).pDepthStencilAttachment = &depthAttachmentRef;
+    subpassDescriptions.at(1).pResolveAttachments = colorAttachmentResolvesRef.data();
+
+
     // Subpass dependencies for layout transitions
-    std::array<VkSubpassDependency, 1> dependencies{};
+    std::array<VkSubpassDependency, 2> dependencies{};
+    // First subpass
     dependencies.at(0).srcSubpass = VK_SUBPASS_EXTERNAL;
     dependencies.at(0).dstSubpass = 0;
     dependencies.at(0).srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
     dependencies.at(0).srcAccessMask = 0;
     dependencies.at(0).dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
     dependencies.at(0).dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+    // Second subpass
+    dependencies.at(1).srcSubpass = 0;
+    dependencies.at(1).dstSubpass = 1;
+    dependencies.at(1).srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+    dependencies.at(1).srcAccessMask = 0;
+    dependencies.at(1).dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+    dependencies.at(1).dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
     // assemble info to build render pass
     VkRenderPassCreateInfo renderPassInfo{};
@@ -498,9 +514,29 @@ void VkApp::createDescriptorSetLayout()
  */
 void VkApp::createGraphicsPipeline()
 {
+    // Offscreen rendering (first subpass) shaders
+    auto vertShaderCodeOffscreen = GLtools::readFile("../../src/shaders/vertOffscreen.spv");
+    auto fragShaderCodeOffscreen = GLtools::readFile("../../src/shaders/fragOffscreen.spv");
+    VkShaderModule vertShaderModuleOffscreen = createShaderModule(vertShaderCodeOffscreen);
+    VkShaderModule fragShaderModuleOffscreen = createShaderModule(fragShaderCodeOffscreen);
+
+    VkPipelineShaderStageCreateInfo vertShaderStageInfoOffscreen{};
+    vertShaderStageInfoOffscreen.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    vertShaderStageInfoOffscreen.stage = VK_SHADER_STAGE_VERTEX_BIT;
+    vertShaderStageInfoOffscreen.module = vertShaderModuleOffscreen;
+    vertShaderStageInfoOffscreen.pName = "main";
+
+    VkPipelineShaderStageCreateInfo fragShaderStageInfoOffscreen{};
+    fragShaderStageInfoOffscreen.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    fragShaderStageInfoOffscreen.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+    fragShaderStageInfoOffscreen.module = fragShaderModuleOffscreen;
+    fragShaderStageInfoOffscreen.pName = "main";
+
+    VkPipelineShaderStageCreateInfo shaderStagesOffscreen[] = { vertShaderStageInfoOffscreen, fragShaderStageInfoOffscreen };
+    
+    // Onscreen rendering (second subpass) shaders
     auto vertShaderCode = GLtools::readFile("../../src/shaders/vert.spv");
     auto fragShaderCode = GLtools::readFile("../../src/shaders/frag.spv");
-
     VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
     VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
 
@@ -517,6 +553,8 @@ void VkApp::createGraphicsPipeline()
     fragShaderStageInfo.pName = "main";
 
     VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
+
+
 
     // describes the format of the vertex data that will be passed to the vertex shader
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
@@ -605,24 +643,13 @@ void VkApp::createGraphicsPipeline()
     colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
     colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
     colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
-    VkPipelineColorBlendAttachmentState colorBlendAttachment2{};
-    colorBlendAttachment2.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-    colorBlendAttachment2.blendEnable = VK_TRUE;
-    colorBlendAttachment2.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-    colorBlendAttachment2.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-    colorBlendAttachment2.colorBlendOp = VK_BLEND_OP_ADD;
-    colorBlendAttachment2.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-    colorBlendAttachment2.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-    colorBlendAttachment2.alphaBlendOp = VK_BLEND_OP_ADD;
-    VkPipelineColorBlendAttachmentState colorBlendAttachments[] = {colorBlendAttachment, colorBlendAttachment2};
 
     VkPipelineColorBlendStateCreateInfo colorBlending{};
     colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
     colorBlending.logicOpEnable = VK_FALSE;
     colorBlending.logicOp = VK_LOGIC_OP_COPY; // Optional
-    //@@@ one/two color attachments
-    colorBlending.attachmentCount = 2/* 1*/;
-    colorBlending.pAttachments = &colorBlendAttachments[0];
+    colorBlending.attachmentCount = 1;
+    colorBlending.pAttachments = &colorBlendAttachment;
     colorBlending.blendConstants[0] = 0.0f; // Optional
     colorBlending.blendConstants[1] = 0.0f; // Optional
     colorBlending.blendConstants[2] = 0.0f; // Optional
@@ -641,7 +668,19 @@ void VkApp::createGraphicsPipeline()
     dynamicState.pDynamicStates = dynamicStates.data();
 
 
-    // pipeline layout
+    // Pipeline layouts
+    // Offscreen scene rendering
+    VkPipelineLayoutCreateInfo pipelineLayoutInfoOffscreen{};
+    pipelineLayoutInfoOffscreen.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfoOffscreen.setLayoutCount = 1;
+    pipelineLayoutInfoOffscreen.pSetLayouts = &m_descriptorSetLayout;
+    pipelineLayoutInfoOffscreen.pushConstantRangeCount = 0; // Optional
+    pipelineLayoutInfoOffscreen.pPushConstantRanges = nullptr; // Optional
+
+    if (vkCreatePipelineLayout(m_contextPtr->getDevice(), &pipelineLayoutInfoOffscreen, nullptr, &m_pipelineLayoutOffscreen) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create pipeline layout Offscreen!");
+    }
+    // Scene rendering
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount = 1;
@@ -658,7 +697,7 @@ void VkApp::createGraphicsPipeline()
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     pipelineInfo.stageCount = 2;
-    pipelineInfo.pStages = shaderStages;
+    pipelineInfo.pStages = shaderStagesOffscreen;
     pipelineInfo.pVertexInputState = &vertexInputInfo;
     pipelineInfo.pInputAssemblyState = &inputAssembly;
     pipelineInfo.pViewportState = &viewportState;
@@ -667,18 +706,30 @@ void VkApp::createGraphicsPipeline()
     pipelineInfo.pDepthStencilState = &depthStencil;
     pipelineInfo.pColorBlendState = &colorBlending;
     pipelineInfo.pDynamicState = &dynamicState;
-    pipelineInfo.layout = m_pipelineLayout; // references the structures describing the fixed-function stage
+    pipelineInfo.layout = m_pipelineLayoutOffscreen; // references the structures describing the fixed-function stage
     pipelineInfo.renderPass = m_renderPass;
-    pipelineInfo.subpass = 0;
+    pipelineInfo.subpass = 0; // first subpass
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
     pipelineInfo.basePipelineIndex = -1; // Optional
 
     // Finally creates the pipeline
+    if (vkCreateGraphicsPipelines(m_contextPtr->getDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_graphicsPipelineOffscreen) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create graphics pipelineOffscreen!");
+    }
+    
+
+    // Re-define pipeline info for second subpass (onscreen rendering)
+    pipelineInfo.pStages = shaderStages;
+    pipelineInfo.layout = m_pipelineLayout;
+    pipelineInfo.subpass = 1;
+    
     if (vkCreateGraphicsPipelines(m_contextPtr->getDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_graphicsPipeline) != VK_SUCCESS) {
         throw std::runtime_error("failed to create graphics pipeline!");
     }
     
 
+    vkDestroyShaderModule(m_contextPtr->getDevice(), fragShaderModuleOffscreen, nullptr);
+    vkDestroyShaderModule(m_contextPtr->getDevice(), vertShaderModuleOffscreen, nullptr);
     vkDestroyShaderModule(m_contextPtr->getDevice(), fragShaderModule, nullptr);
     vkDestroyShaderModule(m_contextPtr->getDevice(), vertShaderModule, nullptr);
     
@@ -718,8 +769,8 @@ void VkApp::createFramebuffers()
     for (size_t i = 0; i < m_swapChainImageViews.size(); i++)
     {
         // number of attachments must match the attachments defined in createRenderPass()
-        std::array<VkImageView, 4> attachments = { m_colorImage.getImageView(),
-                                                   m_posImage.getImageView(),
+        std::array<VkImageView, 4> attachments = { m_offscreenImage.getImageView(),
+                                                   m_colorImage.getImageView(),
                                                    m_depthImage.getImageView(),
                                                    m_swapChainImageViews[i] };
 
@@ -805,6 +856,18 @@ void VkApp::createColorResources()
 {
     VkFormat colorFormat = m_swapChainImageFormat;
 
+    // Color-coded position buffer for offscreen rendering
+    m_offscreenImage.createImage(*m_contextPtr,
+                                 m_swapChainExtent.width, m_swapChainExtent.height, m_msaaSamples,
+                                 colorFormat,
+                                 VK_IMAGE_TILING_OPTIMAL,
+                                 VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT );
+
+    m_offscreenImage.createImageView(*m_contextPtr, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+
+
+    // Rendered color buffer for onscreen rendering
     m_colorImage.createImage(*m_contextPtr,
                              m_swapChainExtent.width, m_swapChainExtent.height, m_msaaSamples,
                              colorFormat,
@@ -814,15 +877,6 @@ void VkApp::createColorResources()
 
     m_colorImage.createImageView(*m_contextPtr, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT);
 
-    // Position gbuffer
-    m_posImage.createImage(*m_contextPtr,
-                           m_swapChainExtent.width, m_swapChainExtent.height, m_msaaSamples,
-                           colorFormat,
-                           VK_IMAGE_TILING_OPTIMAL,
-                           VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-                           VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT );
-
-    m_posImage.createImageView(*m_contextPtr, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
 
@@ -957,20 +1011,19 @@ void VkApp::recordCommandBuffer(VkCommandBuffer _commandBuffer, uint32_t _imageI
     // m_renderPass was created with 3 attachments (cf.createRenderPass())
     // -> we must define 3 clear values
     std::array<VkClearValue, 3> clearValues{}; 
-    clearValues.at(0).color = { {0.0f, 0.0f, 0.05f, 1.0f} };   // color clear value for fisrt color attachment
-    clearValues.at(1).color = { {0.05f, 0.05f, 0.05f, 1.0f} }; // color clear value for second color attachment (pos gbuffer)
+    clearValues.at(0).color = { {0.05f, 0.05f, 0.05f, 1.0f} }; // color clear value for first color attachment (offscreen rendering)
+    clearValues.at(1).color = { {0.0f, 0.0f, 0.05f, 1.0f} };   // color clear value for second color attachment (onscreen gbuffer)
     clearValues.at(2).depthStencil = { 1.0f, 0 };              // depth clear value for depth attachment
 
     renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
     renderPassInfo.pClearValues = clearValues.data();
 
-    // Begins render pass
+    // Begins render pass (first performs offscreen rendering)
     vkCmdBeginRenderPass(_commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
     {
-        // Basic drawing commands
-        vkCmdBindPipeline(_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
-
+		// Bind Offscreen rendering pipeline
+        vkCmdBindPipeline(_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipelineOffscreen);
+        
         VkViewport viewport{};
         viewport.x = 0.0f;
         viewport.y = 0.0f;
@@ -994,26 +1047,28 @@ void VkApp::recordCommandBuffer(VkCommandBuffer _commandBuffer, uint32_t _imageI
         // Bind index buffer
         vkCmdBindIndexBuffer(_commandBuffer, m_mesh.getIndexBuffer(), 0, VK_INDEX_TYPE_UINT32 /*VK_INDEX_TYPE_UINT16*/);
 
-        // Bind descriptors (i.e., uniforms)
+        // Bind descriptors (i.e., uniforms) for offscreen rendering pipeline layout
+        vkCmdBindDescriptorSets(_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayoutOffscreen, 0, 1, &m_descriptorSets[m_currentFrame], 0, nullptr);
+        
+        // Issue draw command
+        //vkCmdDrawIndexed(_commandBuffer, static_cast<uint32_t>(m_mesh.getIndices().size() ), 1, 0, 0, 0);
+	}
+
+    // Second render pass (onscreen rendering)
+    vkCmdNextSubpass(_commandBuffer, VK_SUBPASS_CONTENTS_INLINE);
+    {
+        // Basic drawing commands
+        vkCmdBindPipeline(_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
+
+        // Bind descriptors (i.e., uniforms) for onscreen rendering pipeline layout
         vkCmdBindDescriptorSets(_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &m_descriptorSets[m_currentFrame], 0, nullptr);
 
-        //VkColorComponentFlags colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-        //CmdSetColorWriteMaskEXT(m_contextPtr->getInstance(), _commandBuffer, 0, 1, &colorWriteMask);
-
-        // Issue draw command !
+        // Issue draw command
         //vkCmdDraw(_commandBuffer, static_cast<uint32_t>(m_vertices.size()), 1, 0, 0); // unindexed vertex buffer version
         vkCmdDrawIndexed(_commandBuffer, static_cast<uint32_t>(m_mesh.getIndices().size() ), 1, 0, 0, 0); // indexed vertex buffer version
 
     }
 
-
-    // @@@ TODO: add first pass for position gbuffer rendering and move final rendering to second pass
-    // ...
-	{
-		//vkCmdNextSubpass(_commandBuffer, VK_SUBPASS_CONTENTS_INLINE);
-
-        // ...
-	}
 
     // Ends render pass
     vkCmdEndRenderPass(_commandBuffer);
@@ -1152,8 +1207,8 @@ void VkApp::drawFrame()
  */
 void VkApp::cleanupSwapChain() 
 {
+    m_offscreenImage.cleanup(*m_contextPtr);
     m_colorImage.cleanup(*m_contextPtr);
-    m_posImage.cleanup(*m_contextPtr);
     m_depthImage.cleanup(*m_contextPtr);
 
     for (size_t i = 0; i < m_swapChainFramebuffers.size(); i++)

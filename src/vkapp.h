@@ -73,7 +73,15 @@ private:
     std::vector<VkImageView> m_swapChainImageViews;     // image views
     VkRenderPass m_renderPass;                          // the render pipeline
     VkDescriptorSetLayout m_descriptorSetLayout;        // defines uniforms
-    VkPipelineLayout m_pipelineLayout;                  // defines uniforms
+    /* The pipeline layout represents a sequence of 
+    descriptor sets with each having a specific layout.
+    This sequence of layouts is used to determine the 
+    interface between shader stages and shader resources.
+    Each pipeline is created using a pipeline layout.
+    cf. https://docs.vulkan.org/refpages/latest/refpages/source/VkPipelineLayout.html */
+    VkPipelineLayout m_pipelineLayoutOffscreen;   
+    VkPipelineLayout m_pipelineLayout;
+    VkPipeline m_graphicsPipelineOffscreen;
     VkPipeline m_graphicsPipeline;                      // final graphics pipeline
     std::vector<VkFramebuffer> m_swapChainFramebuffers; // framebuffers
     VkSampleCountFlagBits m_msaaSamples = VK_SAMPLE_COUNT_1_BIT; // nb of samples per pixel
@@ -81,7 +89,7 @@ private:
     // images
     Image m_depthImage;     // depth buffer
     Image m_colorImage;     // image to store the desired number of samples per pixel
-    Image m_posImage;       // image to store geometry positions as RGB values
+    Image m_offscreenImage; // image to store geometry positions as RGB values in offscreen rendering
 
     // Command buffer (for each in-flight frame)
     std::vector<VkCommandBuffer> m_commandBuffers;
