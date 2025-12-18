@@ -330,15 +330,14 @@ namespace CompGeom
         return 1;
     }
 
-    std::vector<glm::vec3> Arap::getResult()
+    void Arap::getResult(std::vector<glm::vec3>& _res)
     {
-        std::vector<glm::vec3> newPosition;
+        _res.clear();
 
         for(int i = 0; i < m_matX.rows(); i++)
         {
-            newPosition.push_back(glm::vec3(m_matX.row(i)[0], m_matX.row(i)[1], m_matX.row(i)[2]));
+            _res.push_back(glm::vec3(m_matX.row(i)[0], m_matX.row(i)[1], m_matX.row(i)[2]));
         }
-        return newPosition;
     }
 	
 

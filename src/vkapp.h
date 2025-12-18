@@ -23,6 +23,7 @@
 #include "image.h"
 #include "massspringsystem.h"
 #include "arap.h"
+#include "fem.h"
 
 
 namespace CompGeom
@@ -41,7 +42,8 @@ class VkApp
         MS_MID,     /* Mass-spring midpoint */
         MS_VER,     /* Mass-spring Verlet */
         MS_RK4,     /* Mass-spring RK4 */
-        ARAP        /* Arap */
+        ARAP,       /* Arap */
+        FEM         /* Fem */
     };
 
     const eAnimationModels ANIMATION_MODEL = eAnimationModels::ARAP;
@@ -109,6 +111,7 @@ private:
     Mesh m_mesh;
     MassSpringSystem m_massSpringSystem;
     Arap m_arap;
+    Fem m_fem;
 
     UniformBufferObject m_ubo{};
     glm::mat4 m_initModel;

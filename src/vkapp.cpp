@@ -64,7 +64,7 @@ void VkApp::initGeomModel()
     m_mesh.createVertexBuffer(*m_contextPtr);
     m_mesh.createIndexBuffer(*m_contextPtr);
 
-    if (ANIMATION_MODEL != eAnimationModels::ARAP)
+    if (ANIMATION_MODEL != eAnimationModels::ARAP && ANIMATION_MODEL != eAnimationModels::FEM)
     {
         m_mesh.buildMassSpringSystem(m_massSpringSystem);
     }
@@ -114,8 +114,16 @@ void VkApp::initGeomModel()
 
             break;
         }
-    }
+        case eAnimationModels::FEM:
+        {
+            m_mesh.buildFEM(m_fem);
+            m_mesh.readFEM(m_fem);
+            m_mesh.updateVertexBuffer(*m_contextPtr);
 
+            break;
+        }
+    }
+    
 
 }
 
@@ -866,7 +874,7 @@ void VkApp::createColorResources()
 
     m_offscreenImage.createImageView(*m_contextPtr, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT);
 
-
+    
     // Rendered color buffer for onscreen rendering
     m_colorImage.createImage(*m_contextPtr,
                              m_swapChainExtent.width, m_swapChainExtent.height, m_msaaSamples,
@@ -1054,6 +1062,7 @@ void VkApp::recordCommandBuffer(VkCommandBuffer _commandBuffer, uint32_t _imageI
         //vkCmdDrawIndexed(_commandBuffer, static_cast<uint32_t>(m_mesh.getIndices().size() ), 1, 0, 0, 0);
 	}
 
+
     // Second render pass (onscreen rendering)
     vkCmdNextSubpass(_commandBuffer, VK_SUBPASS_CONTENTS_INLINE);
     {
@@ -1069,12 +1078,18 @@ void VkApp::recordCommandBuffer(VkCommandBuffer _commandBuffer, uint32_t _imageI
 
     }
 
-
     // Ends render pass
     vkCmdEndRenderPass(_commandBuffer);
+
     if (vkEndCommandBuffer(_commandBuffer) != VK_SUCCESS) {
         throw std::runtime_error("failed to record command buffer!");
     }
+
+ //       void* data;
+	//vkMapMemory( m_contextPtr->getDevice(), m_colorImage.getImageMemory(), 0, VK_WHOLE_SIZE, 0, &data );
+	//std::ofstream ofs( "out.raw", std::ostream::binary );
+	//ofs.write( (char*)data, m_swapChainExtent.width * m_swapChainExtent.height * m_swapChainImageFormat * 4);
+	//vkUnmapMemory( m_contextPtr->getDevice(), m_colorImage.getImageMemory() );
 }
 
 
@@ -1113,18 +1128,22 @@ void VkApp::createSyncObjects()
  */
 void VkApp::updateGeom()
 {
-    if (ANIMATION_MODEL != eAnimationModels::ARAP)
-    {
-        m_massSpringSystem.iterate();
-        m_mesh.readMassSpringSystem(m_massSpringSystem);
-    }
-    else
+    if (ANIMATION_MODEL == eAnimationModels::ARAP )
     {
         m_arap.updateAnchors();
         m_arap.solve(1e-6);
         m_mesh.readARAP(m_arap);
     }
-     m_mesh.updateVertexBuffer(*m_contextPtr);
+    else if (ANIMATION_MODEL == eAnimationModels::FEM )
+    {
+        m_mesh.readFEM(m_fem);
+    }
+    else
+    {
+        m_massSpringSystem.iterate();
+        m_mesh.readMassSpringSystem(m_massSpringSystem);
+    }
+    m_mesh.updateVertexBuffer(*m_contextPtr);
 }
 
 

@@ -51,6 +51,7 @@ namespace CompGeom
 class Fem
 {
     
+    typedef Eigen::ConjugateGradient<Eigen::MatrixXd, Eigen::Lower|Eigen::Upper> FemCG;
 
 public:
 
@@ -82,7 +83,9 @@ public:
     |                                        MISCELLANEOUS                                          |
     +-----------------------------------------------------------------------------------------------*/
 
-    void initialize(std::vector<glm::vec3>& _vertices, std::vector<uint32_t>& _indices);
+    void initialize(std::vector<glm::vec3>& _vertices, std::vector<uint32_t>& _indices,
+	                double _mu, double _lambda, double _dt);
+
     void addConstraints(std::vector<uint32_t>& _fixedConstraints, std::vector<std::pair<uint32_t, glm::vec3> > _movingConstraint);
 
 
@@ -97,6 +100,12 @@ public:
     * \brief Builds the displacement-deformation matrix
     */
     void buildBe(Eigen::MatrixXd& _Be, const Eigen::Matrix3d& _Pe);
+
+    /*!
+    * \fn buildE
+    * \brief Builds the elasticity matrix
+    */
+    void buildE();
 	
     /*!
     * \fn buildKe
@@ -108,13 +117,22 @@ public:
     * \fn assembleK
     * \brief Builds the global stiffness matrix
     */
-    void assembleK(Eigen::MatrixXd& _K);
+    void assembleK();
 
     /*!
-    * \fn setBoundaryConditions
+    * \fn setBoundaryConditionsFixed
     * \brief Eliminates the rows and columns corresponding to fixed Vertices
     */
-    void setBoundaryConditions(Eigen::MatrixXd& _S);
+    void setBoundaryConditionsFixed();
+
+    /*!
+    * \fn setBoundaryConditionsForces
+    * \brief Add external forces to the global system K * u = f
+    */
+    void setBoundaryConditionsForces();
+
+    void getResult(std::vector<glm::vec3>& _res);
+    void solve();
 
 protected:
 
@@ -124,10 +142,14 @@ protected:
 
 
     Eigen::MatrixXd m_matK;                      /*!< Global stiffness matrix */
+    Eigen::Matrix3d m_matE;                      /*!< Elasticity matrix */
+    Eigen::VectorXd m_vecU;
+    Eigen::VectorXd m_vecF;
+    FemCG m_CG;
 
-    double m_mu;						         /*!< Lame parameters */
-	double m_lambda;
-	double m_dt;						         /*!< Time Step */
+    double m_mu = 10.5;						     /*!< Lame parameters */
+	double m_lambda = 0.5;
+	double m_dt =0.05;						     /*!< Time Step */
 
     std::vector<glm::vec3> m_initVertices;       /* initial vertices */
     std::vector<uint32_t> m_indices;

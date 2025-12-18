@@ -13,6 +13,7 @@
 #include "vkcontext.h"
 #include "massspringsystem.h"
 #include "arap.h"
+#include "fem.h"
 
 #include <iterator>
 #include <algorithm>
@@ -248,7 +249,7 @@ bool Mesh::buildARAP(Arap& _arap)
 
 
     std::vector<std::pair<uint32_t, glm::vec3> > anchors;
-    for (uint32_t i = 0; i < m_fixedPointsIds.size(); ++i)
+    for (size_t i = 0; i < m_fixedPointsIds.size(); ++i)
     {
         // add fixed points as anchors
         uint32_t id = m_fixedPointsIds.at(i);
@@ -256,7 +257,7 @@ bool Mesh::buildARAP(Arap& _arap)
         glm::vec3 position = verticesPos.at(m_fixedPointsIds.at(i));
         anchors.push_back(std::make_pair(id, position));
     }
-    for (uint32_t i = 0; i < m_constraintPoints.size(); ++i)
+    for (size_t i = 0; i < m_constraintPoints.size(); ++i)
     {
         // add constraint points as anchors
         uint32_t id = m_constraintPoints.at(i).first;
@@ -277,7 +278,8 @@ bool Mesh::buildARAP(Arap& _arap)
  */
 bool Mesh::readARAP(Arap& _arap)
 {
-    std::vector<glm::vec3> newPos = _arap.getResult();
+    std::vector<glm::vec3> newPos;
+    _arap.getResult(newPos);
 
     assert(m_vertices.size() == newPos.size()) ;
 
@@ -287,10 +289,51 @@ bool Mesh::readARAP(Arap& _arap)
         return false;
     }
 
-    for (int i = 0; i < m_vertices.size(); i++)
+    for (size_t i = 0; i < m_vertices.size(); i++)
     {
         m_vertices.at(i).pos = newPos.at(i);
     }   
+
+    return true;
+}
+
+
+bool Mesh::buildFEM(Fem& _fem)
+{
+    std::vector<glm::vec3> verticesPos;
+    for (auto it = m_vertices.begin(); it != m_vertices.end(); ++it)
+    {
+        verticesPos.push_back(it->pos);
+    }   
+
+    _fem.initialize(verticesPos, m_indices, 10.5, 0.5, 0.05);
+
+    verticesPos.clear();
+
+    _fem.addConstraints(m_fixedPointsIds, m_constraintPoints);
+    //_fem.solve();
+
+    return true;
+}
+
+
+bool Mesh::readFEM(Fem& _fem)
+{
+    std::vector<glm::vec3> newPos;
+    _fem.getResult(newPos);
+
+    assert(m_vertices.size() == newPos.size()) ;
+
+    if (m_vertices.size() != newPos.size())
+    {
+        std::cerr << "m_vertices.size() != _fem.getResult().size() " << std::endl;
+        return false;
+    }
+
+    for (int i = 0; i < m_vertices.size(); i++)
+    {
+        m_vertices.at(i).pos = newPos.at(i);
+    }
 
     return true;
 }

@@ -27,6 +27,7 @@ namespace CompGeom
 class VkContext;
 class MassSpringSystem;
 class Arap;
+class Fem;
 
 
 /*
@@ -153,6 +154,8 @@ public:
     bool readMassSpringSystem(MassSpringSystem& _massSpringSystem);
     bool buildARAP(Arap& _arap);
     bool readARAP(Arap& _arap);
+    bool buildFEM(Fem& _fem);
+    bool readFEM(Fem& _fem);
 
     void createVertexBuffer(VkContext& _context);
     void updateVertexBuffer(VkContext& _context);

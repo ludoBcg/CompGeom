@@ -111,7 +111,7 @@ public:
     * \fn getResult
     * \brief Returns new vertices' coords from matrix X
     */
-    std::vector<glm::vec3> getResult();
+    void getResult(std::vector<glm::vec3>& _res);
 
     /*!
     * \fn updateConstraints
@@ -136,8 +136,8 @@ protected:
     Eigen::MatrixX3d m_matX;                /*!< X matrix (coordinates of vertices) */
 
     std::vector<std::pair<uint32_t, glm::vec3> > m_anchors; /* each anchor point is identified by its id and target position */
-    double m_anchorsWeight = 1.0;   /* anchors' weight */
-    double m_edgesWeight = 1.0;     /* edges' weight, we use constant weight instead of cotan weights */
+    double m_anchorsWeight = 1.0;           /* anchors' weight */
+    double m_edgesWeight = 1.0;             /* edges' weight, we use constant weight instead of cotan weights */
     glm::vec3 m_backupMovingAnchor;
 
     std::vector<glm::vec3> m_initVertices;       /* initial vertices */
