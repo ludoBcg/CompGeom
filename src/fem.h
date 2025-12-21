@@ -84,7 +84,7 @@ public:
     +-----------------------------------------------------------------------------------------------*/
 
     void initialize(std::vector<glm::vec3>& _vertices, std::vector<uint32_t>& _indices,
-	                double _mu, double _lambda, double _dt);
+	                double _mu, double _lambda);
 
     void addConstraints(std::vector<uint32_t>& _fixedConstraints, std::vector<std::pair<uint32_t, glm::vec3> > _movingConstraint);
 
@@ -132,6 +132,11 @@ public:
     void setBoundaryConditionsForces();
 
     void getResult(std::vector<glm::vec3>& _res);
+
+    /*!
+    * \fn solve
+    * \brief Calculates the displacements u by solving the global system K * u = f
+    */
     void solve();
 
 protected:
@@ -149,7 +154,6 @@ protected:
 
     double m_mu = 10.5;						     /*!< Lame parameters */
 	double m_lambda = 0.5;
-	double m_dt =0.05;						     /*!< Time Step */
 
     std::vector<glm::vec3> m_initVertices;       /* initial vertices */
     std::vector<uint32_t> m_indices;

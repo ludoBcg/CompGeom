@@ -306,12 +306,12 @@ bool Mesh::buildFEM(Fem& _fem)
         verticesPos.push_back(it->pos);
     }   
 
-    _fem.initialize(verticesPos, m_indices, 10.5, 0.5, 0.05);
+    _fem.initialize(verticesPos, m_indices, 10.5, 0.5);
 
     verticesPos.clear();
 
     _fem.addConstraints(m_fixedPointsIds, m_constraintPoints);
-    //_fem.solve();
+    _fem.solve();
 
     return true;
 }

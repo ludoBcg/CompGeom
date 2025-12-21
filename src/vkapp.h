@@ -46,7 +46,7 @@ class VkApp
         FEM         /* Fem */
     };
 
-    const eAnimationModels ANIMATION_MODEL = eAnimationModels::ARAP;
+    const eAnimationModels ANIMATION_MODEL = eAnimationModels::FEM;
 
     const int MAX_FRAMES_IN_FLIGHT = 2;
 

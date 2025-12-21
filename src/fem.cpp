@@ -17,14 +17,13 @@ namespace CompGeom
 {
 
 void Fem::initialize(std::vector<glm::vec3>& _vertices, std::vector<uint32_t>& _indices,
-	                 double _mu, double _lambda, double _dt)
+	                 double _mu, double _lambda)
 {
 	m_initVertices = _vertices;
     m_indices = _indices;
 
 	m_mu = _mu;
 	m_lambda = _lambda;
-	m_dt = _dt;
 
 	buildE();
 
@@ -38,7 +37,7 @@ void Fem::addConstraints(std::vector<uint32_t>& _fixedConstraints, std::vector<s
 	m_movingConstraints = _movingConstraint;
 
 	setBoundaryConditionsFixed();
-	//setBoundaryConditionsForces();
+	setBoundaryConditionsForces();
 }
 
 
@@ -116,6 +115,7 @@ void Fem::buildBe(Eigen::MatrixXd& _Be, const Eigen::Matrix3d& _Pe)
     */
 
 	_Be.resize(3, 6);
+	_Be.setZero();
 
 	double alpha_2 = _Pe.row(0)[1];
 	double beta_2  = _Pe.row(1)[1];
@@ -132,12 +132,12 @@ void Fem::buildBe(Eigen::MatrixXd& _Be, const Eigen::Matrix3d& _Pe)
 	_Be.row(1)[3] = beta_3; 
 	_Be.row(1)[5] = gamma_3;
 	
-	_Be.row(2)[0] = 0.5 * alpha_3;
-	_Be.row(2)[1] = 0.5 * alpha_2;
-	_Be.row(2)[2] = 0.5 * beta_3;
-	_Be.row(2)[3] = 0.5 * beta_2;
-	_Be.row(2)[4] = 0.5 * gamma_3;
-	_Be.row(2)[5] = 0.5 * gamma_2;
+	_Be.row(2)[0] = /*0.5 * */alpha_3;
+	_Be.row(2)[1] = /*0.5 * */alpha_2;
+	_Be.row(2)[2] = /*0.5 * */beta_3;
+	_Be.row(2)[3] = /*0.5 * */beta_2;
+	_Be.row(2)[4] = /*0.5 * */gamma_3;
+	_Be.row(2)[5] = /*0.5 * */gamma_2;
 
 }
 
@@ -155,6 +155,8 @@ void Fem::buildE()
 	*   the mesh elasticity
     */
 
+	m_matE.setZero();
+
 	m_matE.row(0)[0] = 2.0 * m_mu + m_lambda; 
 	m_matE.row(0)[1] = m_lambda;
 
@@ -169,10 +171,14 @@ void Fem::buildE()
 void Fem::buildKe(Eigen::MatrixXd& _Ke, int _i1, int _i2, int _i3)
 {
 	_Ke.resize(6, 6);
+	_Ke.setZero();
 
 	Eigen::MatrixXd Be(3, 6);
 	Eigen::Matrix3d Pe(3, 3);
 	double vol;
+
+	Be.setZero();
+	Pe.setZero();
 
 	buildPe(Pe, _i1, _i2, _i3);
 
@@ -182,8 +188,7 @@ void Fem::buildKe(Eigen::MatrixXd& _Ke, int _i1, int _i2, int _i3)
 
 	buildBe(Be, Pe);
 
-	_Ke = (Be.transpose() * (m_matE * Be)) * vol; 
-	//Ke = (Be.transpose().Multiply(E.Multiply(Be))).ProductWithScalar(vol);
+	_Ke = Be.transpose() * m_matE * Be * vol; 
 }
 
 
@@ -200,8 +205,9 @@ void Fem::assembleK()
 	{
 		// build matrix Ke for triangle element e
 		Eigen::MatrixXd Ke(6, 6);
+		Ke.setZero();
 		buildKe(Ke, m_indices[tId * 3], m_indices[tId * 3 + 1], m_indices[tId * 3 + 2]);
-		
+
 		for (int i = 0; i < 3; i++)
 		{
 			for (int j = 0; j < 3; j++)
@@ -228,41 +234,103 @@ void Fem::assembleK()
 
 void Fem::setBoundaryConditionsFixed()
 {
-	size_t nbVertices = m_initVertices.size();
-	size_t nbTriangles = m_indices.size() / 3;
+	// Remove from matrix global matrix K all rows and columns 
+	// which correspond to a fixed node:
+	// New number of nodes = original node number - fixed node number 
+	// New matrix K dimension = New number of nodes * 2 coords
+	size_t nbNodes = m_initVertices.size();
+	const size_t matDim = 2 * (nbNodes - m_fixedConstraints.size());
 
-	Eigen::MatrixXd tempK(2 * nbVertices - m_fixedConstraints.size(), 2 * nbVertices - m_fixedConstraints.size());
+	// build a temporary K matrix with new dimensions
+	Eigen::MatrixXd tempK(matDim, matDim);
+	tempK.setZero();
 
-	int i2 = 0;
-	for (int i = 0; i < 2 * nbVertices; i++)
+	// build a temporary list of non-fixed nodes indices
+	std::vector<uint32_t> tempMovingNodes;
+	for(uint32_t i = 0; i < nbNodes; i++)
 	{
-		if (std::find(m_fixedConstraints.begin(), m_fixedConstraints.end(), i) == m_fixedConstraints.end()) 
+		if (std::find(m_fixedConstraints.begin(), m_fixedConstraints.end(), i) == m_fixedConstraints.end())
 		{
-			int j2 = 0;
-			for (int j = 0; j < 2 * nbVertices; ++j)
-			{
-				if (std::find(m_fixedConstraints.begin(), m_fixedConstraints.end(), j) == m_fixedConstraints.end()) 
-				{
-					tempK.row(i2)[j2] = m_matK.row(i)[j];
-					j2++;
-				}
-			}
-			i2++;
-		}	
+			tempMovingNodes.push_back(i);
+		}
 	}
+
+	// Copy K matrix factors which correspond to moving nodes into tempK
+	int cptI = 0; // coord in new matrix K
+	for(auto it1 = tempMovingNodes.begin(); it1 != tempMovingNodes.end(); ++it1)
+	{
+		// get node coords in original K (iterate over rows)
+		int idNodeI = (*it1);
+		int nodeIX = 2 * idNodeI;
+		int nodeIY = 2 * idNodeI + 1;
+
+		int cptJ = 0; // coord in new matrix K
+		for(auto it2 = tempMovingNodes.begin(); it2 != tempMovingNodes.end(); ++it2)
+		{
+			// get node coords in original K (iterate over columns)
+			int idNodeJ = (*it2);
+			int nodeJX = 2 * idNodeJ;
+			int nodeJY = 2 * idNodeJ + 1;
+
+			// new coords
+			int newI = 2 * cptI;
+			int newJ = 2 * cptJ;
+			tempK.row(newI)[newJ] = m_matK.row(nodeIX)[nodeJX];
+			tempK.row(newI)[newJ + 1] = m_matK.row(nodeIX)[nodeJY];
+
+			tempK.row(newI + 1)[newJ] = m_matK.row(nodeIY)[nodeJX];
+			tempK.row(newI + 1)[newJ + 1] = m_matK.row(nodeIY)[nodeJY];
+
+			cptJ++;
+		}
+		cptI++;
+	}
+
+	// overwrite global matrix K with temporary K
 	m_matK = tempK;
 }
 
 
 void Fem::setBoundaryConditionsForces()
 {
-	// ...
+	assert(m_matK.rows() == m_matK.cols());
+	const size_t dimVec = m_matK.rows();
+
+	Eigen::VectorXd tempVecU;
+	tempVecU.resize(dimVec);
+	Eigen::VectorXd tempVecF;
+	tempVecF.resize(dimVec);
+
+	tempVecU.setZero();
+	tempVecF.setZero();
+	
+	tempVecF.row(20)[0] = 4.0;
+	tempVecF.row(21)[0] = 8.0;
+
+	m_vecU = tempVecU;
+	m_vecF = tempVecF;
 }
 
 
 void Fem::solve()
 {
-	//...
+	assert(m_matK.row(0).size() == m_vecU.size());
+	assert(m_matK.row(0).size() == m_vecF.size());
+	assert(m_matK.row(0).size() == m_matK.col(0).size());
+
+	m_CG.compute(m_matK);
+	auto info = m_CG.info();
+	std::string success = info == Eigen::Success ? "Success" : Eigen::NumericalIssue ? "NumericalIssue" : "Unknown";
+    std::cout << "m_CG computation: " << success << std::endl;
+
+	m_vecU = m_CG.solve(m_vecF);
+
+	info = m_CG.info();
+    success = info == Eigen::Success ? "Success" : Eigen::NumericalIssue ? "NumericalIssue" : "Unknown";
+    std::cout << "m_CG solve:       " << success << std::endl;
+	std::cout << "#iterations:      " << m_CG.iterations() << std::endl;
+    std::cout << "estimated error:  " << m_CG.error()      << std::endl;
+	
 }
 
 
@@ -270,21 +338,37 @@ void Fem::getResult(std::vector<glm::vec3>& _res)
 {
     _res.clear();
 
-	int j=0;
-    for(int i = 0; i < m_initVertices.size(); i++)
-    {
-		glm::vec3 initPos = m_initVertices.at(i);
-		Eigen::Vector3d displacement;
-		displacement.setZero();
+	// init result with original positions
+	_res = m_initVertices;
+
+	// build a temporary list of non-fixed nodes indices
+	size_t nbNodes = m_initVertices.size();
+	std::vector<uint32_t> tempMovingNodes;
+	for(uint32_t i = 0; i < nbNodes; i++)
+	{
 		if (std::find(m_fixedConstraints.begin(), m_fixedConstraints.end(), i) == m_fixedConstraints.end())
 		{
-			displacement[0] = m_vecU.row(j*2)[0];
-			displacement[1] = m_vecU.row(j*2+1)[0];
-			j++;
+			tempMovingNodes.push_back(i);
 		}
-		
-        _res.push_back(initPos + glm::vec3(displacement[0], displacement[1], displacement[2]));
-    }
+	}
+
+	int cpt = 0;
+	for (auto it = tempMovingNodes.begin(); it != tempMovingNodes.end(); ++it)
+	{
+		int idNode = (*it);
+
+		glm::vec3 initPos = m_initVertices.at(idNode);
+		Eigen::Vector3d displacement;
+		displacement.setZero();
+
+		displacement[0] = m_vecU.row(cpt * 2)[0];
+		displacement[1] = m_vecU.row(cpt * 2 + 1)[0];
+
+		// update position of moving nodes
+		_res.at(idNode) = initPos + glm::vec3(displacement[0], displacement[1], displacement[2]);
+
+		cpt++;
+	}
 }
 	
 
