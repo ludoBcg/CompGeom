@@ -129,6 +129,7 @@ void Mesh::createGrid(const float _lengthSide, const unsigned int _nbVertPerSide
     // Temporary definition of hard-coded boundary conditions
     m_fixedPointsIds = { 0, 4, 20, 24 };
     m_constraintPoints = { std::make_pair<uint32_t, glm::vec3>(12, glm::vec3(0.0, 0.0, 1.0) /*target pos*/) };
+    m_constraintPointsFEM = { std::make_pair<uint32_t, glm::vec3>(12, glm::vec3(0.5, 0.5, 0.0) /*target pos*/) };
 }
 
 
@@ -310,8 +311,8 @@ bool Mesh::buildFEM(Fem& _fem)
 
     verticesPos.clear();
 
-    _fem.addConstraints(m_fixedPointsIds, m_constraintPoints);
-    _fem.solve();
+    _fem.addConstraints(m_fixedPointsIds, m_constraintPointsFEM);
+    //_fem.solve();
 
     return true;
 }

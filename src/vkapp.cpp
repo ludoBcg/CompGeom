@@ -1136,6 +1136,8 @@ void VkApp::updateGeom()
     }
     else if (ANIMATION_MODEL == eAnimationModels::FEM )
     {
+        m_fem.updateBoundaryConditions();
+        m_fem.solve();
         m_mesh.readFEM(m_fem);
     }
     else

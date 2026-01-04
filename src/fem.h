@@ -133,6 +133,8 @@ public:
 
     void getResult(std::vector<glm::vec3>& _res);
 
+    void updateBoundaryConditions();
+
     /*!
     * \fn solve
     * \brief Calculates the displacements u by solving the global system K * u = f

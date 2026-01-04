@@ -303,9 +303,35 @@ void Fem::setBoundaryConditionsForces()
 
 	tempVecU.setZero();
 	tempVecF.setZero();
-	
+
+		
 	tempVecF.row(20)[0] = 4.0;
 	tempVecF.row(21)[0] = 8.0;
+
+	m_vecU = tempVecU;
+	m_vecF = tempVecF;
+}
+
+
+void Fem::updateBoundaryConditions()
+{
+	const size_t dimVec = m_matK.rows();
+
+	Eigen::VectorXd tempVecU;
+	tempVecU.resize(dimVec);
+	Eigen::VectorXd tempVecF;
+	tempVecF.resize(dimVec);
+
+	tempVecU.setZero();
+	tempVecF.setZero();
+	
+	uint32_t constraintVertId = m_movingConstraints.at(0).first;
+	glm::vec3 constraintTargetPos = m_movingConstraints.at(0).second;
+	glm::vec3 constraintInitPos = m_initVertices.at(constraintVertId);
+	glm::vec3 constraintDisplacement = constraintTargetPos - constraintInitPos;
+	uint32_t constraintVecId = 2 * (constraintVertId - 2);
+	tempVecF.row(constraintVecId)[0] = constraintDisplacement.x * 0.1;
+	tempVecF.row(constraintVecId + 1)[0] = constraintDisplacement.y * 0.1;
 
 	m_vecU = tempVecU;
 	m_vecF = tempVecF;
@@ -320,16 +346,19 @@ void Fem::solve()
 
 	m_CG.compute(m_matK);
 	auto info = m_CG.info();
-	std::string success = info == Eigen::Success ? "Success" : Eigen::NumericalIssue ? "NumericalIssue" : "Unknown";
-    std::cout << "m_CG computation: " << success << std::endl;
+	std::string computationInfo = info == Eigen::Success ? "Success" : Eigen::NumericalIssue ? "NumericalIssue" : "Unknown";
+    if(computationInfo != "Success")
+		std::cerr << "m_CG computation error: " << computationInfo << std::endl;
 
 	m_vecU = m_CG.solve(m_vecF);
 
 	info = m_CG.info();
-    success = info == Eigen::Success ? "Success" : Eigen::NumericalIssue ? "NumericalIssue" : "Unknown";
-    std::cout << "m_CG solve:       " << success << std::endl;
-	std::cout << "#iterations:      " << m_CG.iterations() << std::endl;
-    std::cout << "estimated error:  " << m_CG.error()      << std::endl;
+    computationInfo = info == Eigen::Success ? "Success" : Eigen::NumericalIssue ? "NumericalIssue" : "Unknown";
+    if(computationInfo != "Success")
+		std::cerr << "m_CG solve error:       " << computationInfo << std::endl;
+	
+	//std::cout << "#iterations:      " << m_CG.iterations() << std::endl;
+    //std::cout << "estimated error:  " << m_CG.error()      << std::endl;
 	
 }
 
@@ -366,6 +395,8 @@ void Fem::getResult(std::vector<glm::vec3>& _res)
 
 		// update position of moving nodes
 		_res.at(idNode) = initPos + glm::vec3(displacement[0], displacement[1], displacement[2]);
+		
+		m_initVertices.at(idNode) = _res.at(idNode);
 
 		cpt++;
 	}

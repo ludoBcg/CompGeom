@@ -174,6 +174,7 @@ protected:
     std::vector<uint32_t> m_fixedPointsIds;
     // List of constraint point (Id, target pos)
     std::vector<std::pair<uint32_t, glm::vec3> > m_constraintPoints;
+    std::vector<std::pair<uint32_t, glm::vec3> > m_constraintPointsFEM;
 
     // Vertex buffer
     VkBuffer m_vertexBuffer;
