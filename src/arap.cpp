@@ -17,25 +17,44 @@ namespace CompGeom
 {
     void Arap::updateAnchors()
     {
-        glm::vec3 anchorTarget = m_backupMovingAnchor;
-        glm::vec3 anchorPt = m_anchors.back().second;
-        glm::vec3 displacementVec = anchorTarget - anchorPt;
-        if(glm::length(displacementVec) > 0.001f)
-            displacementVec = glm::normalize(displacementVec) * 0.01f;
-        anchorPt += displacementVec;
-        m_anchors.back().second = anchorPt;
+        for (auto it = m_constraints.begin(); it != m_constraints.end(); ++it)
+        {
+            glm::vec3 anchorTargetPos = it->second;
+            glm::vec3 anchorCurrentPos = m_anchorsMap.at(it->first);
+
+            glm::vec3 displacementVec = anchorTargetPos - anchorCurrentPos;
+            if(glm::length(displacementVec) > 0.001f)
+                displacementVec = glm::normalize(displacementVec) * 0.01f;
+
+            glm::vec3 anchorNextPos = anchorCurrentPos + displacementVec;
+            m_anchorsMap.at(it->first) = anchorNextPos;
+        }
     }
 
 
-	bool Arap::initialize(std::vector<glm::vec3>& _vertices, std::vector<std::vector<bool> >& _adjacency,
-                          std::vector<std::pair<uint32_t, glm::vec3> >& _anchors, double _anchorsWeight)
+	bool Arap::initialize(std::vector<glm::vec3>& _vertices,
+                          std::vector<std::vector<bool> >& _adjacency,
+                          std::vector<std::pair<uint32_t, glm::vec3> >& _fixedAnchors,
+                          std::vector<std::pair<uint32_t, glm::vec3> >& _constraints,
+                          double _anchorsWeight)
 	{
         m_initVertices = _vertices;
         m_adjacency = _adjacency;
-        m_anchors = _anchors;
         m_anchorsWeight = _anchorsWeight;
-        m_backupMovingAnchor = m_anchors.back().second;
-        m_anchors.back().second = _vertices.at(m_anchors.back().first);
+
+        // 1. add _fixedAnchors to m_anchorsMap
+        for (auto it = _fixedAnchors.begin(); it != _fixedAnchors.end(); ++it)
+        {
+            m_anchorsMap.insert(*it);
+        }
+        // 2. add _constraints to m_anchorsMap with _vertices as position
+        for (auto it = _constraints.begin(); it != _constraints.end(); ++it)
+        {
+            m_anchorsMap.insert(std::make_pair(it->first, _vertices.at(it->first) ) );
+        }
+
+        m_constraints = _constraints;
+
         updateAnchors();
 
         const size_t nbVert = _vertices.size();
@@ -101,8 +120,7 @@ namespace CompGeom
             // add anchor weights in diagonal
             // NOTE: anchors are necessary to prevent the matrix from being negative definite,
             // thus avoiding the Eigen::NumericalIssue in the sparse Cholesky decomposition later (see SimplicialLLT::compute() below)
-            if (std::find_if(m_anchors.begin(), m_anchors.end(), 
-                          [&](const std::pair<uint32_t, glm::vec3>& pair) { return pair.first == (uint32_t)i; }) != m_anchors.end())
+            if (m_anchorsMap.find(i) != m_anchorsMap.end())
             {
                 d_i += m_anchorsWeight;
             }
@@ -208,13 +226,11 @@ namespace CompGeom
                 }
             }
         }
-
-
-        const size_t num_anchors = m_anchors.size();
-        for(size_t i = 0; i < num_anchors; ++i)
+        
+        for(auto it = m_anchorsMap.begin(); it != m_anchorsMap.end(); ++it)
         {
-            glm::vec3 anchorPos = m_anchors.at(i).second;
-            matB.row(m_anchors.at(i).first) += m_anchorsWeight * Eigen::Vector3d(anchorPos.x, anchorPos.y, anchorPos.z);
+            glm::vec3 anchorPos = it->second;
+            matB.row(it->first) += m_anchorsWeight * Eigen::Vector3d(anchorPos.x, anchorPos.y, anchorPos.z);
         }
 
         if(m_llt.info() == Eigen::Success)
@@ -256,18 +272,15 @@ namespace CompGeom
             }
         }
 
-
-        const size_t num_anchors = m_anchors.size();
-        for(size_t i = 0; i < num_anchors; ++i)
+        for(auto it = m_anchorsMap.begin(); it != m_anchorsMap.end(); ++it)
         {
-            glm::vec3 anchorPos = m_anchors.at(i).second;
-            matB.row(m_anchors.at(i).first) += m_anchorsWeight * Eigen::Vector3d(anchorPos.x, anchorPos.y, anchorPos.z);
+            glm::vec3 anchorPos = it->second;
+            matB.row(it->first) += m_anchorsWeight * Eigen::Vector3d(anchorPos.x, anchorPos.y, anchorPos.z);
         }
 
         if(m_llt.info() == Eigen::Success)
         {
             m_matX = m_llt.solve(matB);
-
             return 1;
         }
 
@@ -311,6 +324,8 @@ namespace CompGeom
 
     int Arap::solve(double _eps)
     {
+        updateAnchors();
+
         size_t iter = 0;
         double err1 = 1,err2 = 0;
         //local-to-global interations
@@ -321,11 +336,17 @@ namespace CompGeom
             err1 = err2;
             err2 = l2Energy();
             iter++;
-
         }
 
         //std::cout<<"The number of iteration is: "<<iter<<std::endl;
         //std::cout<<"The residual is "<<err2<<std::endl;
+
+        //update moving anchors positions
+        for (auto it = m_constraints.begin(); it != m_constraints.end(); ++it)
+        {
+            glm::vec3 anchorNewPos = glm::vec3(m_matX.row(it->first)[0], m_matX.row(it->first)[1], m_matX.row(it->first)[2]);
+            m_anchorsMap.at(it->first) = anchorNewPos;
+        }
 
         return 1;
     }

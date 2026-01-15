@@ -69,8 +69,11 @@ public:
     |                                        MISCELLANEOUS                                          |
     +-----------------------------------------------------------------------------------------------*/
 
-    bool initialize(std::vector<glm::vec3>& _vertices, std::vector<std::vector<bool> >& _adjacency,
-                    std::vector<std::pair<uint32_t, glm::vec3> >& _anchors, double _anchorsWeight);
+    bool initialize(std::vector<glm::vec3>& _vertices,
+                    std::vector<std::vector<bool> >& _adjacency,
+                    std::vector<std::pair<uint32_t, glm::vec3> >& _fixedAnchors,
+                    std::vector<std::pair<uint32_t, glm::vec3> >& _constraints,
+                    double _anchorsWeight);
 
     /*!
     * \fn buildMatrixL
@@ -135,10 +138,10 @@ protected:
     std::vector<Eigen::Matrix3d> m_rot;     /*!< list of local rotation matrices */
     Eigen::MatrixX3d m_matX;                /*!< X matrix (coordinates of vertices) */
 
-    std::vector<std::pair<uint32_t, glm::vec3> > m_anchors; /* each anchor point is identified by its id and target position */
-    double m_anchorsWeight = 1.0;           /* anchors' weight */
-    double m_edgesWeight = 1.0;             /* edges' weight, we use constant weight instead of cotan weights */
-    glm::vec3 m_backupMovingAnchor;
+    std::map<uint32_t, glm::vec3> m_anchorsMap; /* each anchor point is identified by its id and target position */
+    std::vector<std::pair<uint32_t, glm::vec3> > m_constraints; /* backup ultimate target position for moving anchors */
+    double m_anchorsWeight = 1.0;               /* anchors' weight */
+    double m_edgesWeight = 1.0;                 /* edges' weight, we use constant weight instead of cotan weights */
 
     std::vector<glm::vec3> m_initVertices;       /* initial vertices */
     std::vector<std::vector<bool> > m_adjacency; /* adjacency matrix */
