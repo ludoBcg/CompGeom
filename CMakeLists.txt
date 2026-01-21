@@ -13,6 +13,8 @@ set(SRCS
 	src/vkcontext.cpp
 	src/vkapp.cpp
 	src/mesh.cpp
+	src/dynamicmesh.cpp
+	src/surfacemesh.cpp
 	src/image.cpp
 	src/point.cpp
 	src/spring.cpp
@@ -27,6 +29,8 @@ set(HEADERS
 	src/vkcontext.h
 	src/vkapp.h
 	src/mesh.h
+	src/dynamicmesh.h
+	src/surfacemesh.h
 	src/image.h
 	src/point.h
 	src/spring.h
