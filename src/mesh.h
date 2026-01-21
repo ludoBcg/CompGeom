@@ -25,9 +25,6 @@ namespace CompGeom
 {
 
 class VkContext;
-class MassSpringSystem;
-class Arap;
-class Fem;
 
 
 /*
@@ -145,17 +142,10 @@ public:
 
     void cleanup(VkContext& _context);
 
-    bool isAdjacencyEmpty() const;
-    unsigned int getVertexDegree(const unsigned int _id) const;
     unsigned int id2Dto1D(const unsigned int _i, const unsigned int _j,
                           const unsigned int _nbVertI, const unsigned int _nbVertJ) const;
-    void createGrid(const float _lengthSide, const unsigned int _nbVertPerSide);
-    bool buildMassSpringSystem(MassSpringSystem& _massSpringSystem);
-    bool readMassSpringSystem(MassSpringSystem& _massSpringSystem);
-    bool buildARAP(Arap& _arap);
-    bool readARAP(Arap& _arap);
-    bool buildFEM(Fem& _fem);
-    bool readFEM(Fem& _fem);
+    virtual void createGrid(const float _lengthSide, const unsigned int _nbVertPerSide);
+
 
     void createVertexBuffer(VkContext& _context);
     void updateVertexBuffer(VkContext& _context);
@@ -167,14 +157,6 @@ protected:
     std::vector<Vertex> m_vertices;
     // List of indices
     std::vector<uint32_t> m_indices;
-    // Adjacency matrix
-    std::vector<std::vector<bool> > m_adjacency;
-
-    // List of fixed point
-    std::vector<uint32_t> m_fixedPointsIds;
-    // List of constraint point (Id, target pos)
-    std::vector<std::pair<uint32_t, glm::vec3> > m_constraintPoints;
-    std::vector<std::pair<uint32_t, glm::vec3> > m_constraintPointsFEM;
 
     // Vertex buffer
     VkBuffer m_vertexBuffer;

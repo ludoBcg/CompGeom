@@ -192,7 +192,7 @@ void Fem::buildKe(Eigen::MatrixXd& _Ke, int _i1, int _i2, int _i3)
 }
 
 
-//Global stiffness matrix. Dimensions (2 x numberOfVertexes, 2 x numberOfVertices)
+//Global stiffness matrix. Dimensions (2 x numberOfVertices, 2 x numberOfVertices)
 void Fem::assembleK()
 {
 	size_t nbVertices = m_initVertices.size();
