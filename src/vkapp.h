@@ -19,7 +19,8 @@
 
 
 #include "vkcontext.h"
-#include "mesh.h"
+#include "dynamicmesh.h"
+#include "surfacemesh.h"
 #include "image.h"
 #include "massspringsystem.h"
 #include "arap.h"
@@ -42,11 +43,11 @@ class VkApp
         MS_MID,     /* Mass-spring midpoint */
         MS_VER,     /* Mass-spring Verlet */
         MS_RK4,     /* Mass-spring RK4 */
-        ARAP,       /* Arap */
-        FEM         /* Fem */
+        ARAP,       /* As-Rigid-As-Possible */
+        FEM         /* Finite-Element Method 2D */
     };
 
-    const eAnimationModels ANIMATION_MODEL = eAnimationModels::FEM;
+    const eAnimationModels ANIMATION_MODEL = eAnimationModels::ARAP;
 
     const int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -108,7 +109,8 @@ private:
     uint32_t m_currentFrame = 0;
 
     // Mesh contains vertex buffer and index buffer
-    Mesh m_mesh;
+    DynamicMesh m_dynMesh;
+    SurfaceMesh m_surfMesh;
     MassSpringSystem m_massSpringSystem;
     Arap m_arap;
     Fem m_fem;

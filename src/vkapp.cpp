@@ -60,13 +60,17 @@ void VkApp::initWindow()
 void VkApp::initGeomModel()
 {
     // build grid geometry
-    m_mesh.createGrid(1.5f, 5);
-    m_mesh.createVertexBuffer(*m_contextPtr);
-    m_mesh.createIndexBuffer(*m_contextPtr);
+    m_dynMesh.createGrid(1.5f, 4);
+    m_surfMesh.buildParametricSurface(m_dynMesh, 18, eParametricSurface::BEZIER);
+    m_surfMesh.createVertexBuffer(*m_contextPtr);
+    m_surfMesh.createIndexBuffer(*m_contextPtr);
+
+    m_dynMesh.createVertexBuffer(*m_contextPtr);
+    m_dynMesh.createIndexBuffer(*m_contextPtr);
 
     if (ANIMATION_MODEL != eAnimationModels::ARAP && ANIMATION_MODEL != eAnimationModels::FEM)
     {
-        m_mesh.buildMassSpringSystem(m_massSpringSystem);
+        m_dynMesh.buildMassSpringSystem(m_massSpringSystem);
     }
 
     switch (ANIMATION_MODEL)
@@ -108,22 +112,21 @@ void VkApp::initGeomModel()
         }
         case eAnimationModels::ARAP:
         {
-            m_mesh.buildARAP(m_arap);
-            m_mesh.readARAP(m_arap);
-            m_mesh.updateVertexBuffer(*m_contextPtr);
+            m_dynMesh.buildARAP(m_arap);
+            m_dynMesh.readARAP(m_arap);
+            m_dynMesh.updateVertexBuffer(*m_contextPtr);
 
             break;
         }
         case eAnimationModels::FEM:
         {
-            m_mesh.buildFEM(m_fem);
-            m_mesh.readFEM(m_fem);
-            m_mesh.updateVertexBuffer(*m_contextPtr);
+            m_dynMesh.buildFEM(m_fem);
+            m_dynMesh.readFEM(m_fem);
+            m_dynMesh.updateVertexBuffer(*m_contextPtr);
 
             break;
         }
     }
-    
 
 }
 
@@ -216,7 +219,8 @@ void VkApp::cleanup()
     vkDestroyDescriptorPool(m_contextPtr->getDevice(), m_descriptorPool, nullptr);
     vkDestroyDescriptorSetLayout(m_contextPtr->getDevice(), m_descriptorSetLayout, nullptr);
 
-    m_mesh.cleanup(*m_contextPtr);
+    m_dynMesh.cleanup(*m_contextPtr);
+    m_surfMesh.cleanup(*m_contextPtr);
 
     vkDestroyPipeline(m_contextPtr->getDevice(), m_graphicsPipelineOffscreen, nullptr);
     vkDestroyPipeline(m_contextPtr->getDevice(), m_graphicsPipeline, nullptr);
@@ -1048,18 +1052,18 @@ void VkApp::recordCommandBuffer(VkCommandBuffer _commandBuffer, uint32_t _imageI
 
 
         // Bind vertex buffer
-        VkBuffer vertexBuffers[] = { m_mesh.getVertexBuffer() };
+        VkBuffer vertexBuffers[] = { m_surfMesh.getVertexBuffer() };
         VkDeviceSize offsets[] = { 0 };
         vkCmdBindVertexBuffers(_commandBuffer, 0, 1, vertexBuffers, offsets);
 
         // Bind index buffer
-        vkCmdBindIndexBuffer(_commandBuffer, m_mesh.getIndexBuffer(), 0, VK_INDEX_TYPE_UINT32 /*VK_INDEX_TYPE_UINT16*/);
+        vkCmdBindIndexBuffer(_commandBuffer, m_surfMesh.getIndexBuffer(), 0, VK_INDEX_TYPE_UINT32 /*VK_INDEX_TYPE_UINT16*/);
 
         // Bind descriptors (i.e., uniforms) for offscreen rendering pipeline layout
         vkCmdBindDescriptorSets(_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayoutOffscreen, 0, 1, &m_descriptorSets[m_currentFrame], 0, nullptr);
         
         // Issue draw command
-        //vkCmdDrawIndexed(_commandBuffer, static_cast<uint32_t>(m_mesh.getIndices().size() ), 1, 0, 0, 0);
+        //vkCmdDrawIndexed(_commandBuffer, static_cast<uint32_t>(m_surfMesh.getIndices().size() ), 1, 0, 0, 0);
 	}
 
 
@@ -1069,13 +1073,24 @@ void VkApp::recordCommandBuffer(VkCommandBuffer _commandBuffer, uint32_t _imageI
         // Basic drawing commands
         vkCmdBindPipeline(_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
 
+        VkBuffer vertexBuffers[] = { m_dynMesh.getVertexBuffer() };
+        VkDeviceSize offsets[] = { 0 };
+        vkCmdBindVertexBuffers(_commandBuffer, 0, 1, vertexBuffers, offsets);
+        vkCmdBindIndexBuffer(_commandBuffer, m_dynMesh.getIndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
+
         // Bind descriptors (i.e., uniforms) for onscreen rendering pipeline layout
         vkCmdBindDescriptorSets(_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &m_descriptorSets[m_currentFrame], 0, nullptr);
 
         // Issue draw command
         //vkCmdDraw(_commandBuffer, static_cast<uint32_t>(m_vertices.size()), 1, 0, 0); // unindexed vertex buffer version
-        vkCmdDrawIndexed(_commandBuffer, static_cast<uint32_t>(m_mesh.getIndices().size() ), 1, 0, 0, 0); // indexed vertex buffer version
+        vkCmdDrawIndexed(_commandBuffer, static_cast<uint32_t>(m_dynMesh.getIndices().size() ), 1, 0, 0, 0); // indexed vertex buffer version
 
+
+        VkBuffer vertexBuffers2[] = { m_surfMesh.getVertexBuffer() };
+        vkCmdBindVertexBuffers(_commandBuffer, 0, 1, vertexBuffers2, offsets);
+        vkCmdBindIndexBuffer(_commandBuffer, m_surfMesh.getIndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindDescriptorSets(_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &m_descriptorSets[m_currentFrame], 0, nullptr);
+        vkCmdDrawIndexed(_commandBuffer, static_cast<uint32_t>(m_surfMesh.getIndices().size() ), 1, 0, 0, 0);
     }
 
     // Ends render pass
@@ -1130,22 +1145,23 @@ void VkApp::updateGeom()
 {
     if (ANIMATION_MODEL == eAnimationModels::ARAP )
     {
-        m_arap.updateAnchors();
         m_arap.solve(1e-6);
-        m_mesh.readARAP(m_arap);
+        m_dynMesh.readARAP(m_arap);
     }
     else if (ANIMATION_MODEL == eAnimationModels::FEM )
     {
         m_fem.updateBoundaryConditions();
         m_fem.solve();
-        m_mesh.readFEM(m_fem);
+        m_dynMesh.readFEM(m_fem);
     }
     else
     {
         m_massSpringSystem.iterate();
-        m_mesh.readMassSpringSystem(m_massSpringSystem);
+        m_dynMesh.readMassSpringSystem(m_massSpringSystem);
     }
-    m_mesh.updateVertexBuffer(*m_contextPtr);
+    m_surfMesh.updateParametricSurface(m_dynMesh, 18, eParametricSurface::BEZIER);
+    m_surfMesh.updateVertexBuffer(*m_contextPtr);
+    m_dynMesh.updateVertexBuffer(*m_contextPtr);
 }
 
 
