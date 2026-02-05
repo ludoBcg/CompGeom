@@ -61,7 +61,8 @@ void VkApp::initGeomModel()
 {
     // build grid geometry
     m_dynMesh.createGrid(1.5f, 4);
-    m_surfMesh.buildParametricSurface(m_dynMesh, 18, eParametricSurface::BEZIER);
+    //m_surfMesh.buildParametricSurface(m_dynMesh, 18, eParametricSurface::BEZIER);
+    m_surfMesh.buildTPSsurface(m_dynMesh, 18);
     m_surfMesh.createVertexBuffer(*m_contextPtr);
     m_surfMesh.createIndexBuffer(*m_contextPtr);
 
@@ -1159,7 +1160,8 @@ void VkApp::updateGeom()
         m_massSpringSystem.iterate();
         m_dynMesh.readMassSpringSystem(m_massSpringSystem);
     }
-    m_surfMesh.updateParametricSurface(m_dynMesh, 18, eParametricSurface::BEZIER);
+    //m_surfMesh.updateParametricSurface(m_dynMesh, eParametricSurface::BEZIER);
+    m_surfMesh.updateTPSsurface(m_dynMesh);
     m_surfMesh.updateVertexBuffer(*m_contextPtr);
     m_dynMesh.updateVertexBuffer(*m_contextPtr);
 }

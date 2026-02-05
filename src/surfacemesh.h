@@ -17,6 +17,10 @@
 #include <glm/mat4x4.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <Eigen/Core>
+#include <Eigen/Sparse>
+#include <Eigen/SVD>
+#include <Eigen/Geometry>
 
 #include "mesh.h"
 
@@ -29,12 +33,15 @@ namespace CompGeom
     enum class eParametricSurface
     {
         BEZIER,     /* Bezier surface */
-        BSPLINE     /* b-spline surface */
+        BSPLINE,    /* b-spline surface */
+        TPS         /* Thin Plate Spline surface */
     };
     
 
 class SurfaceMesh : public Mesh
 {
+
+    typedef Eigen::FullPivLU<Eigen::MatrixXd> TpsLU;
 
 public:
 
@@ -73,12 +80,32 @@ public:
     * \fn updateParametricSurface
     * \brief Updates the geometry of a parametric (Bezier or b-spline) surface from a control polygon
     * \param _ctrlPolygon : control polygon mesh (can be a dynamic mesh)
-    * \param _nbSteps : number of intermediate steps along each dimension of the surface
     * \param _paramSurface : type of parametric surface to build
     */
-    void updateParametricSurface(Mesh& _ctrlPolygon, int _nbSteps, eParametricSurface _paramSurface);
+    void updateParametricSurface(Mesh& _ctrlPolygon, eParametricSurface _paramSurface);
+
+    /*!
+    * \fn buildTPSsurface
+    * \brief Builds a Thin Plate Spline surface from a control polygon
+    *        cf. https://elonen.iki.fi/code/tpsdemo/
+    * \param _ctrlPolygon : control polygon mesh (can be a dynamic mesh)
+    * \param _nbSteps : number of intermediate steps along each dimension of the surface
+    */
+    void buildTPSsurface(Mesh& _ctrlPolygon, int _nbSteps);
+
+    /*!
+    * \fn updateTPSsurface
+    * \brief Updates the geometry of a Thin Plate Spline surface from a control polygon
+    * \param _ctrlPolygon : control polygon mesh (can be a dynamic mesh)
+    */
+    void updateTPSsurface(Mesh& _ctrlPolygon);
+
 
 protected:
+
+    TpsLU m_LU;
+
+    unsigned int m_nbSteps = 0;
 
     /*!
     * \fn fact
@@ -119,6 +146,45 @@ protected:
     * \param _u, _v : parametric coordinate (_u, _v in [0.0, 1.0])
     */
     glm::vec3 computeBsplinePt(glm::vec3 _ctrlPoints[4][4], float _u, float _v);
+
+
+    
+    /*!
+    * \fn tpsBaseFunc
+    * \brief function U(r)
+    */
+    double tpsBaseFunc(double _r);
+
+    /*!
+    * \fn buildTPSsubmatrixK
+    * \brief builds the _p x _p submatrix K
+    * \param _matK : submatrix K to build
+    * \param _ctrlPoints : list of control point, _ctrlPoints.size() >= 3
+    */
+    bool buildTPSsubmatrixK(Eigen::MatrixXd& _matK, std::vector<glm::vec3>& _ctrlPoints);
+
+    /*!
+    * \fn buildTPSsubmatrixP
+    * \brief builds the _p x 3 submatrix P
+    * \param _matP : submatrix P to build
+    * \param _ctrlPoints : list of control point, _ctrlPoints.size() >= 3
+    */
+    bool buildTPSsubmatrixP(Eigen::MatrixXd& _matP, std::vector<glm::vec3>& _ctrlPoints);
+
+    /*!
+    * \fn assembleTPSmatrixL
+    * \brief assembles the global matrix L from submatrices
+    * \param _matL : global matrix L to build
+    * \param _ctrlPoints : list of control point, _ctrlPoints.size() >= 3
+    */
+    bool assembleTPSmatrixL(Eigen::MatrixXd& _matL, std::vector<glm::vec3>& _ctrlPoints);
+
+    /*!
+    * \fn buildVectorV
+    * \brief builds the right-hand side vector V
+    * \param _ctrlPoints : list of control point, _ctrlPoints.size() >= 3
+    */
+    bool buildTPSvectorV(Eigen::VectorXd& _vecV, std::vector<glm::vec3>& _ctrlPoints);
 
 
 }; // class SurfaceMesh
