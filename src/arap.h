@@ -36,6 +36,7 @@ namespace CompGeom
 */
 class Arap
 {
+    // Sparse LL^T Cholesky factorization
     typedef Eigen::SimplicialLLT<Eigen::SparseMatrix<double>, Eigen::Upper> ArapSimplicialLLT;
         
 

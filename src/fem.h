@@ -50,7 +50,7 @@ namespace CompGeom
 */
 class Fem
 {
-    
+    // Conjugate gradient solver
     typedef Eigen::ConjugateGradient<Eigen::MatrixXd, Eigen::Lower|Eigen::Upper> FemCG;
 
 public:

@@ -40,7 +40,7 @@ namespace CompGeom
 
 class SurfaceMesh : public Mesh
 {
-
+    // Pivoted LU decomposition
     typedef Eigen::FullPivLU<Eigen::MatrixXd> TpsLU;
 
 public:
