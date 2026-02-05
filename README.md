@@ -1,7 +1,21 @@
 # CompGeom
 Computational geometry sandbox
 
-## EXTERNAL DEPENDENCIES
+## Features
+
+Deformable/dynamic mesh models:
+* Mass-spring systems
+* As-Rigid-As-Possible (ARAP) surfaces
+* Finite Element Method (2D triangular elements)
+* ...
+
+Parametric surfaces:
+* Bezier surfaces
+* B-spline surfaces
+* Thin Plate Spline (TPS) surfaces
+* ...
+
+## External dependencies
 
 Requires the installation of Vulkan SDK: https://vulkan.lunarg.com/sdk
 
