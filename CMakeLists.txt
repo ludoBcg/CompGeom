@@ -22,6 +22,7 @@ set(SRCS
 	src/numericalintegration.cpp
 	src/arap.cpp
 	src/fem.cpp
+	src/pbd.cpp
     )
     
 set(HEADERS
@@ -38,6 +39,7 @@ set(HEADERS
 	src/numericalintegration.h
 	src/arap.h
 	src/fem.h
+	src/pbd.h
     )
 
 	
