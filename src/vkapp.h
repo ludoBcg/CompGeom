@@ -25,6 +25,7 @@
 #include "massspringsystem.h"
 #include "arap.h"
 #include "fem.h"
+#include "pbd.h"
 
 
 namespace CompGeom
@@ -44,10 +45,11 @@ class VkApp
         MS_VER,     /* Mass-spring Verlet */
         MS_RK4,     /* Mass-spring RK4 */
         ARAP,       /* As-Rigid-As-Possible */
-        FEM         /* Finite-Element Method 2D */
+        FEM,        /* Finite-Element Method 2D */
+        PBD,        /* Position Based Dynamics */
     };
 
-    const eAnimationModels ANIMATION_MODEL = eAnimationModels::ARAP;
+    const eAnimationModels ANIMATION_MODEL = eAnimationModels::PBD;
 
     const int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -114,6 +116,7 @@ private:
     MassSpringSystem m_massSpringSystem;
     Arap m_arap;
     Fem m_fem;
+    Pbd m_pbd;
 
     UniformBufferObject m_ubo{};
     glm::mat4 m_initModel;

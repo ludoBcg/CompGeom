@@ -84,22 +84,6 @@ public:
     */
     void updateParametricSurface(Mesh& _ctrlPolygon, eParametricSurface _paramSurface);
 
-    /*!
-    * \fn buildTPSsurface
-    * \brief Builds a Thin Plate Spline surface from a control polygon
-    *        cf. https://elonen.iki.fi/code/tpsdemo/
-    * \param _ctrlPolygon : control polygon mesh (can be a dynamic mesh)
-    * \param _nbSteps : number of intermediate steps along each dimension of the surface
-    */
-    void buildTPSsurface(Mesh& _ctrlPolygon, int _nbSteps);
-
-    /*!
-    * \fn updateTPSsurface
-    * \brief Updates the geometry of a Thin Plate Spline surface from a control polygon
-    * \param _ctrlPolygon : control polygon mesh (can be a dynamic mesh)
-    */
-    void updateTPSsurface(Mesh& _ctrlPolygon);
-
 
 protected:
 
@@ -137,7 +121,8 @@ protected:
     * \param _ctrlPoints : 4x4 array of control points (bicubic parametric surface)
     * \param _u, _v : parametric coordinate (_u, _v in [0.0, 1.0])
     */
-    glm::vec3 computeBezierPt(glm::vec3 _ctrlPoints[4][4], float _u, float _v);
+    glm::vec3 computeBezierPt(const std::array<std::array<glm::vec3, 4>, 4>& _ctrlPoints, 
+                              const float _u, const float _v);
 
     /*!
     * \fn computeBsplinePt
@@ -145,15 +130,32 @@ protected:
     * \param _ctrlPoints : 4x4 array of control points (bicubic parametric surface)
     * \param _u, _v : parametric coordinate (_u, _v in [0.0, 1.0])
     */
-    glm::vec3 computeBsplinePt(glm::vec3 _ctrlPoints[4][4], float _u, float _v);
+    glm::vec3 computeBsplinePt(const std::array<std::array<glm::vec3, 4>, 4>& _ctrlPoints, 
+                               const float _u, const float _v);
 
+
+    /*!
+    * \fn buildTPSsurface
+    * \brief Builds a Thin Plate Spline surface from a control polygon
+    *        cf. https://elonen.iki.fi/code/tpsdemo/
+    * \param _ctrlPolygon : control polygon mesh (can be a dynamic mesh)
+    * \param _nbSteps : number of intermediate steps along each dimension of the surface
+    */
+    void buildTPSsurface(Mesh& _ctrlPolygon, int _nbSteps);
+
+    /*!
+    * \fn updateTPSsurface
+    * \brief Updates the geometry of a Thin Plate Spline surface from a control polygon
+    * \param _ctrlPolygon : control polygon mesh (can be a dynamic mesh)
+    */
+    void updateTPSsurface(Mesh& _ctrlPolygon);
 
     
     /*!
     * \fn tpsBaseFunc
     * \brief function U(r)
     */
-    double tpsBaseFunc(double _r);
+    double tpsBaseFunc(const double _r);
 
     /*!
     * \fn buildTPSsubmatrixK

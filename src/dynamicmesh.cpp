@@ -14,6 +14,7 @@
 #include "massspringsystem.h"
 #include "arap.h"
 #include "fem.h"
+#include "pbd.h"
 
 
 namespace CompGeom
@@ -152,6 +153,81 @@ bool DynamicMesh::readMassSpringSystem(MassSpringSystem& _massSpringSystem)
     for (int i = 0; i < m_vertices.size(); i++)
     {
         m_vertices.at(i).pos = _massSpringSystem.getPointsT().at(i).getPosition();
+    }   
+    
+    return true;
+}
+
+
+/*
+ * Builds a PBD from the tesselation
+ */
+bool DynamicMesh::buildPBD(Pbd& _pbd)
+{
+    _pbd.clear();
+
+    std::vector<std::pair<unsigned int, unsigned int> > vertIds;
+    
+    for (int i = 0; i < m_vertices.size(); i++)
+    {
+        _pbd.addPoint(m_vertices.at(i).pos, 1.0f, 0.1f);
+    }
+
+    for (int i = 0; i < m_indices.size(); i += 3)
+    {
+        unsigned int id0 = m_indices.at(i);
+        unsigned int id1 = m_indices.at(i + 1);
+        unsigned int id2 = m_indices.at(i + 2);
+
+        if( std::find(vertIds.begin(), vertIds.end(), std::make_pair(id0, id1)) == vertIds.end()
+         && std::find(vertIds.begin(), vertIds.end(), std::make_pair(id1, id0)) == vertIds.end() )
+        {
+            _pbd.addDistanceConstraint(id0, id1, 0.25f);
+            vertIds.push_back(std::make_pair(id0, id1));
+        }
+
+        if( std::find(vertIds.begin(), vertIds.end(), std::make_pair(id1, id2)) == vertIds.end()
+         && std::find(vertIds.begin(), vertIds.end(), std::make_pair(id2, id1)) == vertIds.end() )
+        {
+            _pbd.addDistanceConstraint(id1, id2, 0.25f);
+            vertIds.push_back(std::make_pair(id1, id2));
+        }
+
+        if( std::find(vertIds.begin(), vertIds.end(), std::make_pair(id2, id0)) == vertIds.end()
+         && std::find(vertIds.begin(), vertIds.end(), std::make_pair(id0, id2)) == vertIds.end() )
+        {
+            _pbd.addDistanceConstraint(id2, id0, 0.25f);
+            vertIds.push_back(std::make_pair(id2, id0));
+        }
+    }
+
+    _pbd.addConstraints(m_fixedPointsIds, m_constraintPoints);
+
+    for (auto it = m_fixedPointsIds.begin(); it != m_fixedPointsIds.end(); ++it)
+    {
+        _pbd.addAnchorConstraint(*it, m_vertices.at(*it).pos);
+    }
+
+    return true;
+}
+
+
+/*
+ * Updates the tesselation from PBD state
+ */
+bool DynamicMesh::readPBD(Pbd& _pbd)
+{
+    if (m_vertices.size() != _pbd.getPointsT().size())
+    {
+        std::cerr << "m_vertices.size() != _pbd.getPointsT().size() " << std::endl;
+        return false;
+    }
+
+    assert(m_vertices.size() == _pbd.getPointsT().size()) ;
+
+    for (int i = 0; i < m_vertices.size(); i++)
+    {
+        m_vertices.at(i).pos = _pbd.getPointsT().at(i).getPosition();
     }   
     
     return true;

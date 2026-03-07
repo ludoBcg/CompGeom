@@ -43,12 +43,18 @@ double SurfaceMesh::BernsteinCoeff(int _n, int _i, double _t)
 }
 
 
-glm::vec3 SurfaceMesh::computeBezierPt(glm::vec3 _ctrlPoints[4][4], float _u, float _v) 
+glm::vec3 SurfaceMesh::computeBezierPt(const std::array<std::array<glm::vec3, 4>, 4>& _ctrlPoints,
+    const float _u, const float _v)
 {
     // degree = nb ctrl pts - 1
     // Bicubic surface: degree n = m = 3 (i.e., 4 ctrl pts)
     const int nbCtrlPts = 4;
     const int degree = nbCtrlPts - 1;
+
+    if (_ctrlPoints.size() != 4 || _ctrlPoints.front().size() != 4)
+    {
+        std::cerr << "Number of control point array must be 4x4 for  bicubic Bezier surface" << std::endl;
+    }
 
     glm::vec3 surfacePoint(0.0f, 0.0f, 0.0f);
     
@@ -60,9 +66,9 @@ glm::vec3 SurfaceMesh::computeBezierPt(glm::vec3 _ctrlPoints[4][4], float _u, fl
             double Bv = BernsteinCoeff(degree, j, _v);
             float coeff = static_cast<float>(Bu * Bv);
             
-            surfacePoint.x += _ctrlPoints[i][j].x * coeff;
-            surfacePoint.y += _ctrlPoints[i][j].y * coeff;
-            surfacePoint.z += _ctrlPoints[i][j].z * coeff;
+            surfacePoint.x += _ctrlPoints.at(i).at(j).x * coeff;
+            surfacePoint.y += _ctrlPoints.at(i).at(j).y * coeff;
+            surfacePoint.z += _ctrlPoints.at(i).at(j).z * coeff;
         }
     }
     return surfacePoint;
@@ -82,11 +88,16 @@ double SurfaceMesh::RiesenfeldCoeff(int _n, int _i, double _t)
 }
 
 
-// B-spline basis function
-glm::vec3 SurfaceMesh::computeBsplinePt(glm::vec3 _ctrlPoints[4][4], float _u, float _v) 
+glm::vec3 SurfaceMesh::computeBsplinePt(const std::array<std::array<glm::vec3, 4>, 4>& _ctrlPoints, 
+                                        const float _u, const float _v) 
 {
     const int nbCtrlPts = 4;
     const int degree = nbCtrlPts - 1;
+
+    if (_ctrlPoints.size() != 4 || _ctrlPoints.front().size() != 4)
+    {
+        std::cerr << "Number of control point array must be 4x4 for  bicubic b-spline surface" << std::endl;
+    }
 
     glm::vec3 surfacePoint(0.0f, 0.0f, 0.0f);
 
@@ -98,9 +109,9 @@ glm::vec3 SurfaceMesh::computeBsplinePt(glm::vec3 _ctrlPoints[4][4], float _u, f
             double R2 = RiesenfeldCoeff(degree, j, _v);
 			float Ruv = static_cast<float>(R1 * R2);
                        
-            surfacePoint.x += _ctrlPoints[i][j].x * Ruv;
-            surfacePoint.y += _ctrlPoints[i][j].y * Ruv;
-            surfacePoint.z += _ctrlPoints[i][j].z * Ruv;
+            surfacePoint.x += _ctrlPoints.at(i).at(j).x * Ruv;
+            surfacePoint.y += _ctrlPoints.at(i).at(j).y * Ruv;
+            surfacePoint.z += _ctrlPoints.at(i).at(j).z * Ruv;
         }
     }
     
@@ -110,6 +121,12 @@ glm::vec3 SurfaceMesh::computeBsplinePt(glm::vec3 _ctrlPoints[4][4], float _u, f
 
 void SurfaceMesh::buildParametricSurface(Mesh& _ctrlPolygon, int _nbSteps, eParametricSurface _paramSurface)
 {
+    if (_paramSurface == eParametricSurface::TPS)
+    {
+        buildTPSsurface(_ctrlPolygon, _nbSteps);
+        return;
+    }
+
     m_nbSteps = _nbSteps;
 
     // We use bicubic surface (i.e., 4 x 4 control points)
@@ -124,7 +141,7 @@ void SurfaceMesh::buildParametricSurface(Mesh& _ctrlPolygon, int _nbSteps, ePara
     m_vertices.assign(nbVertices, Vertex{});
 
     // 1. Control points grid
-    glm::vec3 ctrlPoints[nbCtrlPtsPerSide][nbCtrlPtsPerSide];
+    std::array<std::array<glm::vec3, nbCtrlPtsPerSide>, nbCtrlPtsPerSide> ctrlPoints;
 
     int idX = 0;
     int idY = 0;
@@ -134,7 +151,7 @@ void SurfaceMesh::buildParametricSurface(Mesh& _ctrlPolygon, int _nbSteps, ePara
         idY = (cpt / nbCtrlPtsPerSide);
         idX = cpt - (idY * nbCtrlPtsPerSide);
 
-        ctrlPoints[idX][idY] = it->pos;
+        ctrlPoints.at(idX).at(idY) = it->pos;
 
         cpt++;
     }
@@ -198,6 +215,12 @@ void SurfaceMesh::buildParametricSurface(Mesh& _ctrlPolygon, int _nbSteps, ePara
 
 void SurfaceMesh::updateParametricSurface(Mesh& _ctrlPolygon, eParametricSurface _paramSurface)
 {
+    if (_paramSurface == eParametricSurface::TPS)
+    {
+        updateTPSsurface(_ctrlPolygon);
+        return;
+    }
+
     // We use bicubic surface (i.e., 4 x 4 control points)
     const int nbCtrlPtsPerSide = 4;
 
@@ -210,7 +233,7 @@ void SurfaceMesh::updateParametricSurface(Mesh& _ctrlPolygon, eParametricSurface
     assert(m_vertices.size() == nbVertices);
 
     // 1. Control points grid
-    glm::vec3 ctrlPoints[nbCtrlPtsPerSide][nbCtrlPtsPerSide];
+    std::array<std::array<glm::vec3, nbCtrlPtsPerSide>, nbCtrlPtsPerSide> ctrlPoints;
 
     int idX = 0;
     int idY = 0;
@@ -220,7 +243,7 @@ void SurfaceMesh::updateParametricSurface(Mesh& _ctrlPolygon, eParametricSurface
         idY = (cpt / nbCtrlPtsPerSide);
         idX = cpt - (idY * nbCtrlPtsPerSide);
 
-        ctrlPoints[idX][idY] = it->pos;
+        ctrlPoints.at(idX).at(idY) = it->pos;
 
         cpt++;
     }
@@ -256,8 +279,7 @@ void SurfaceMesh::updateParametricSurface(Mesh& _ctrlPolygon, eParametricSurface
 }
 
 
-
-double SurfaceMesh::tpsBaseFunc(double _r)
+double SurfaceMesh::tpsBaseFunc(const double _r)
 {
     return _r == 0.0 ? 0.0 : _r * _r * log(_r);
 }

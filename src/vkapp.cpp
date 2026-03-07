@@ -61,15 +61,14 @@ void VkApp::initGeomModel()
 {
     // build grid geometry
     m_dynMesh.createGrid(1.5f, 4);
-    //m_surfMesh.buildParametricSurface(m_dynMesh, 18, eParametricSurface::BEZIER);
-    m_surfMesh.buildTPSsurface(m_dynMesh, 18);
+    m_surfMesh.buildParametricSurface(m_dynMesh, 18, eParametricSurface::TPS);
     m_surfMesh.createVertexBuffer(*m_contextPtr);
     m_surfMesh.createIndexBuffer(*m_contextPtr);
 
     m_dynMesh.createVertexBuffer(*m_contextPtr);
     m_dynMesh.createIndexBuffer(*m_contextPtr);
 
-    if (ANIMATION_MODEL != eAnimationModels::ARAP && ANIMATION_MODEL != eAnimationModels::FEM)
+    if (ANIMATION_MODEL != eAnimationModels::ARAP && ANIMATION_MODEL != eAnimationModels::FEM && ANIMATION_MODEL != eAnimationModels::PBD)
     {
         m_dynMesh.buildMassSpringSystem(m_massSpringSystem);
     }
@@ -125,6 +124,11 @@ void VkApp::initGeomModel()
             m_dynMesh.readFEM(m_fem);
             m_dynMesh.updateVertexBuffer(*m_contextPtr);
 
+            break;
+        }
+        case eAnimationModels::PBD:
+        {
+            m_dynMesh.buildPBD(m_pbd);
             break;
         }
     }
@@ -1155,13 +1159,17 @@ void VkApp::updateGeom()
         m_fem.solve();
         m_dynMesh.readFEM(m_fem);
     }
+    else if (ANIMATION_MODEL == eAnimationModels::PBD )
+    {
+        m_pbd.iterate();
+        m_dynMesh.readPBD(m_pbd);
+    }
     else
     {
         m_massSpringSystem.iterate();
         m_dynMesh.readMassSpringSystem(m_massSpringSystem);
     }
-    //m_surfMesh.updateParametricSurface(m_dynMesh, eParametricSurface::BEZIER);
-    m_surfMesh.updateTPSsurface(m_dynMesh);
+    m_surfMesh.updateParametricSurface(m_dynMesh, eParametricSurface::TPS);
     m_surfMesh.updateVertexBuffer(*m_contextPtr);
     m_dynMesh.updateVertexBuffer(*m_contextPtr);
 }

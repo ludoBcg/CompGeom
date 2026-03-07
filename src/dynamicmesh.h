@@ -26,6 +26,7 @@ namespace CompGeom
 class MassSpringSystem;
 class Arap;
 class Fem;
+class Pbd;
 
 class DynamicMesh : public Mesh
 {
@@ -62,6 +63,8 @@ public:
    
     bool buildMassSpringSystem(MassSpringSystem& _massSpringSystem);
     bool readMassSpringSystem(MassSpringSystem& _massSpringSystem);
+    bool buildPBD(Pbd& _pbd);
+    bool readPBD(Pbd& _pbd);
     bool buildARAP(Arap& _arap);
     bool readARAP(Arap& _arap);
     bool buildFEM(Fem& _fem);
