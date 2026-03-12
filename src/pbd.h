@@ -59,7 +59,7 @@ public:
 
     std::pair<unsigned int, unsigned int> m_pointsIds; /*!< adjacent points */
     float m_stiffness  = 0.25f;          /*!< stiffness factor */
-    float m_restLength = 0.0f;          /*!< resting length */
+    float m_restLength = 0.0f;           /*!< resting length */
 
     float m_scalar_1 = 0.0f;
     float m_scalar_2 = 0.0f;
@@ -144,7 +144,7 @@ public:
     */
     void iterate();
 
-    void project_DistanceConstraint(DistanceConstraint& _distanceConstraint);
+    void project_DistanceConstraint(DistanceConstraint& _distanceConstraint, int _nbIterations);
     void project_AnchorConstraint(AnchorConstraint& _anchorConstraint);
 
     void addDistanceConstraint(const unsigned int _idPt1, const unsigned int _idPt2, const float _stiffness);
@@ -167,7 +167,6 @@ protected:
 
     NumericalIntegrationEuler m_integrationEuler;
 
-    unsigned int m_counter = 0;
 
 }; // class Pbd
 

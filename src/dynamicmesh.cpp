@@ -182,21 +182,21 @@ bool DynamicMesh::buildPBD(Pbd& _pbd)
         if( std::find(vertIds.begin(), vertIds.end(), std::make_pair(id0, id1)) == vertIds.end()
          && std::find(vertIds.begin(), vertIds.end(), std::make_pair(id1, id0)) == vertIds.end() )
         {
-            _pbd.addDistanceConstraint(id0, id1, 0.25f);
+            _pbd.addDistanceConstraint(id0, id1, 0.5f);
             vertIds.push_back(std::make_pair(id0, id1));
         }
 
         if( std::find(vertIds.begin(), vertIds.end(), std::make_pair(id1, id2)) == vertIds.end()
          && std::find(vertIds.begin(), vertIds.end(), std::make_pair(id2, id1)) == vertIds.end() )
         {
-            _pbd.addDistanceConstraint(id1, id2, 0.25f);
+            _pbd.addDistanceConstraint(id1, id2, 0.5f);
             vertIds.push_back(std::make_pair(id1, id2));
         }
 
         if( std::find(vertIds.begin(), vertIds.end(), std::make_pair(id2, id0)) == vertIds.end()
          && std::find(vertIds.begin(), vertIds.end(), std::make_pair(id0, id2)) == vertIds.end() )
         {
-            _pbd.addDistanceConstraint(id2, id0, 0.25f);
+            _pbd.addDistanceConstraint(id2, id0, 0.5f);
             vertIds.push_back(std::make_pair(id2, id0));
         }
     }

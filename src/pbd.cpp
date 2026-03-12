@@ -100,69 +100,36 @@ namespace CompGeom
 	{
 		const auto iterations = 10;
 		const auto delta_t = 0.01f;
-		const float dampingFactor = 0.05f;
+		const float dampingFactor = 0.1f;
 
-		/*******************************************************************************/
 		// 1. Apply external forces
 
-		// m_pointsT.at(it->first).addForce(forceVec);
+		// F_t
 		updateExternalForces();
-
 		// V_t+1 = V_t + F_t * dt
-		// const glm::vec3 newVel = _pointsT.at(i).getVelocity() + (_dt / _pointsT.at(i).getMass()) * force;
-        // _pointsT.at(i).setVelocity(newVel);
 		m_integrationEuler.updateVelocitiesFw(m_pointsT, dampingFactor, delta_t);
 
-		
-		//// apply external forces
-		//for (size_t j = 0; j < object->getVelocities()->size(); j++) 
-		//{
-		//	std::vector<vec3>* velocities = object->getVelocities();
-		//	velocities->at(j) += ((delta_t * vec3(0) /*extForce*/)  * 10.f /*factor*/);
-		//}
-		/*******************************************************************************/
 
-
-
-		/*******************************************************************************/
 		// 2. Integrate
 
 		// copy P_t and V_t in m_pointsTinit
-		copyPoints(m_pointsT, m_pointsTestimate);
+		//copyPoints(m_pointsT, m_pointsTestimate);
 
-		for (size_t step = 0; step < 1 /*substeps*/; step++)
+		for (size_t step = 0; step < 10 /*substeps*/; step++)
 		{
-			// final P_t+1 = P_t + V_t+1 * dt
-			// p(t+h) = p(t) + h*v(t+h)
-            // const glm::vec3 newPos = _pointsT.at(i).getPosition() + _dt * _pointsTnext.at(i).getVelocity();
-            // _pointsTnext.at(i).setPosition(newPos);
-			//m_integrationEuler.updatePositionsBw(m_pointsTinit, m_pointsT, delta_t);
+			copyPoints(m_pointsT, m_pointsTestimate);
+
+			// estimate P_t+1 = P_t + V_t+1 * dt
 			m_integrationEuler.updatePositionsBw(m_pointsT, m_pointsTestimate, delta_t);
 		}
 
-		//// integrate
-		//for (size_t step = 0; step < params->substeps; step++) 
-		//{
-		//	const auto positions = object->getVertices();
-		//	const auto velocities = object->getVelocities();
-		//	auto p = object->getEstimate();
-		//	for (int i = 0; i < positions->size(); i++)
-		//	{
-		//		const auto x = positions->at(i);
-		//		const auto v = velocities->at(i);
-		//		p->at(i) = x + delta_t * v;
-		//	}
-		//}
-		/*******************************************************************************/
-
 	
-		/*******************************************************************************/
 		// 3. Solve
 		for (int i = 0; i < iterations; i++)
 		{
 			for(int j=0 ; j<m_distanceConstraints.size(); j++)
 			{
-				project_DistanceConstraint(m_distanceConstraints.at(j));
+				project_DistanceConstraint(m_distanceConstraints.at(j), iterations);
 			}
 			for(int j=0 ; j<m_anchorConstraints.size(); j++)
 			{
@@ -170,24 +137,7 @@ namespace CompGeom
 			}
 		}
 		
-		// solve 
-		/*
-		for (int i = 0; i < iterations; i++) 
-		{
-			for (auto constraint : scene->getConstraints()) 
-			{
-				constraint->project();
 
-				//https://github.com/marcelogm/pbd/blob/master/src/simulation/constraints/DistanceConstraint.cpp
-				
-				//https://github.com/marcelogm/pbd/blob/master/src/simulation/constraints/AnchorConstraint.cpp
-			}
-		}
-		*/
-		/*******************************************************************************/
-
-
-		/*******************************************************************************/
 		// 4. Update vertices and velocities
 
 		assert(m_pointsTestimate.size() == m_pointsT.size());
@@ -196,7 +146,6 @@ namespace CompGeom
         {
             if(!m_pointsT.at(i).isFixed())
             {
-				//const auto p = m_pointsT.at(i).getPosition();
 				const auto p = m_pointsTestimate.at(i).getPosition(); 
 				const auto x = m_pointsT.at(i).getPosition();
                 const glm::vec3 newVel = (1.0f / delta_t) * (p - x);
@@ -209,26 +158,14 @@ namespace CompGeom
 			}
         }
 
-		// update vertices and velocities (momentum)
-		//for (int j = 0; j < object->getVertices()->size(); j++) 
-		//{
-		//	const auto p = object->getEstimate()->at(j); /* m_pointsT */
-		//	const auto x = object->getVertices()->at(j); /* m_pointsTinit */
-		//	object->getVelocities()->at(j) = (p - x) / delta_t;
-		//	object->getVertices()->at(j) = p;
-		//}
-		/*******************************************************************************/
 
-
-
-		/*******************************************************************************/
 		// 5. Velocity update: dump velocities
 
 		for(int i=0 ; i<m_pointsT.size(); i++)
         {
             if(!m_pointsT.at(i).isFixed())
             {
-                const glm::vec3 newVel = m_pointsT.at(i).getVelocity() *= 0.00998f; // @@@ 0.998f
+                const glm::vec3 newVel = m_pointsT.at(i).getVelocity() * 0.00998f; // @@@ 0.998f
                 m_pointsT.at(i).setVelocity(newVel);
             }
 			else
@@ -237,20 +174,10 @@ namespace CompGeom
 			}
         }
 
-		// velocity update: dump velocities 
-		//for (int j = 0; j < object->getVertices()->size(); j++)
-		//{
-		//	object->getVelocities()->at(j) *= 0.998f;
-		//}
-		/*******************************************************************************/
-
-		//copyPoints(m_pointsTinit, m_pointsT);
 	}
 
-	void Pbd::project_DistanceConstraint(DistanceConstraint& _distanceConstraint)
+	void Pbd::project_DistanceConstraint(DistanceConstraint& _distanceConstraint, int _nbIterations)
 	{
-		//auto params = Configuration::getInstance()->getSimulationParams();
-		auto iterations = 1 /*params->iterations*/;
 		auto stiffness = _distanceConstraint.m_stiffness;
 
 		//auto object = current->getObject();
@@ -275,7 +202,7 @@ namespace CompGeom
 		glm::vec3 delta_p_2 = _distanceConstraint.m_scalar_2 * error * gradient;
 
 		// k = 1 ? (1 ? k)^(1/ns)
-		auto k = 1.f - pow(1.f - stiffness, 1.f / iterations);
+		auto k = 1.f - pow(1.f - stiffness, 1.f / float(_nbIterations));
 
 		// delta_x_1 = - (w_1 / (w_1 + w_2)) * (| x_{1,2} - d |) * n
 		m_pointsTestimate.at(i1).setPosition(p1 + k * delta_p_1);

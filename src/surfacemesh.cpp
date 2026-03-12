@@ -296,7 +296,7 @@ bool SurfaceMesh::buildTPSsubmatrixK(Eigen::MatrixXd& _matK, std::vector<glm::ve
     }
 
     // the higher the lambda, the more rigid the surface
-    double lambda = 0.0;
+    double lambda = 0.2;
 
     if(_matK.rows() != p || _matK.cols() != p)
         _matK.resize(p, p);
