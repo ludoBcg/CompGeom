@@ -168,6 +168,8 @@ protected:
     // Handle to the index buffer memory
     VkDeviceMemory m_indexBufferMemory;
 
+    void updateNormals();
+
 
 }; // class Mesh
 

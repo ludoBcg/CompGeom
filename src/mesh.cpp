@@ -144,8 +144,41 @@ void Mesh::createVertexBuffer(VkContext& _context)
 }
 
 
+void Mesh::updateNormals()
+{
+    // reset all normals to zero
+    for(auto it_vert = m_vertices.begin(); it_vert != m_vertices.end(); it_vert++)
+         it_vert->normal = glm::vec3(0.0f);
+
+    // for each triangle
+    for(auto it_id = m_indices.begin(); it_id != m_indices.end(); it_id += 3)
+    {
+        // calculate per facet normal
+        glm::vec3 p1 = m_vertices.at(*it_id).pos;
+        glm::vec3 p2 = m_vertices.at(*(it_id+1)).pos;
+        glm::vec3 p3 = m_vertices.at(*(it_id+2)).pos;
+
+        glm::vec3 t1 = glm::normalize(p2 - p1);
+        glm::vec3 t2 = glm::normalize(p3 - p1);
+
+        glm::vec3 normal = glm::normalize(glm::cross(t1, t2));
+
+        // add it to all connected vertices
+        m_vertices.at(*it_id).normal += normal;
+        m_vertices.at(*(it_id+1)).normal += normal;
+        m_vertices.at(*(it_id+2)).normal += normal;
+    }
+
+    // normalize
+    for(auto it_vert = m_vertices.begin(); it_vert != m_vertices.end(); it_vert++)
+         it_vert->normal = glm::normalize(it_vert->normal);
+}
+
+
 void Mesh::updateVertexBuffer(VkContext& _context)
 {
+    updateNormals();
+
     VkDeviceSize bufferSize = sizeof(m_vertices[0]) * m_vertices.size();
 
     // Init temporary CPU buffer (stagingBuffer) with associated memory storage (stagingBufferMemory)

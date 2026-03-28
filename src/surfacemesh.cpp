@@ -296,7 +296,7 @@ bool SurfaceMesh::buildTPSsubmatrixK(Eigen::MatrixXd& _matK, std::vector<glm::ve
     }
 
     // the higher the lambda, the more rigid the surface
-    double lambda = 0.2;
+    double lambda = 0.3;
 
     if(_matK.rows() != p || _matK.cols() != p)
         _matK.resize(p, p);
@@ -539,12 +539,12 @@ void SurfaceMesh::buildTPSsurface(Mesh& _ctrlPolygon, int _nbSteps)
         if (id0 < m_nbSteps && id2 < m_nbSteps)
         {
             m_indices.push_back(cpt);
-            m_indices.push_back(cpt + 1);
             m_indices.push_back(cpt + nbVerticesPerSide);
+            m_indices.push_back(cpt + 1);
 
             m_indices.push_back(cpt + 1);
-            m_indices.push_back(cpt + 1 + nbVerticesPerSide);
             m_indices.push_back(cpt + nbVerticesPerSide);
+            m_indices.push_back(cpt + 1 + nbVerticesPerSide);
         }
 
         cpt++;
