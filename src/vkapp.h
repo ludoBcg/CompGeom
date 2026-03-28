@@ -87,7 +87,7 @@ private:
     VkPipelineLayout m_pipelineLayoutOffscreen;   
     VkPipelineLayout m_pipelineLayout;
     VkPipeline m_graphicsPipelineOffscreen;
-    VkPipeline m_graphicsPipeline;                      // final graphics pipeline
+    VkPipeline m_graphicsPipeline, m_graphicsPipelineNormal; // final graphics pipeline
     std::vector<VkFramebuffer> m_swapChainFramebuffers; // framebuffers
     VkSampleCountFlagBits m_msaaSamples = VK_SAMPLE_COUNT_1_BIT; // nb of samples per pixel
 

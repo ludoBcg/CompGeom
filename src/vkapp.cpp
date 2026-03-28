@@ -173,7 +173,7 @@ void VkApp::initVulkan()
  */
 void VkApp::initUBO()
 {
-    m_camera.init(0.01f, 8.0f, 45.0f, 1.0f, m_swapChainExtent.width, m_swapChainExtent.height, glm::vec3(0.0f, 2.0f, 3.0f), glm::vec3(0.0f, 0.0f, 0.0f), 0); 
+    m_camera.init(0.01f, 8.0f, 45.0f, 1.0f, m_swapChainExtent.width, m_swapChainExtent.height, glm::vec3(0.0f, 1.25f, 2.25f), glm::vec3(0.0f, 0.0f, 0.0f), 0); 
     m_trackball.init(m_swapChainExtent.width, m_swapChainExtent.height);
 
     // initial transformation to re-orient mesh
@@ -229,6 +229,7 @@ void VkApp::cleanup()
 
     vkDestroyPipeline(m_contextPtr->getDevice(), m_graphicsPipelineOffscreen, nullptr);
     vkDestroyPipeline(m_contextPtr->getDevice(), m_graphicsPipeline, nullptr);
+    vkDestroyPipeline(m_contextPtr->getDevice(), m_graphicsPipelineNormal, nullptr);
     vkDestroyPipelineLayout(m_contextPtr->getDevice(), m_pipelineLayoutOffscreen, nullptr);
     vkDestroyPipelineLayout(m_contextPtr->getDevice(), m_pipelineLayout, nullptr);
     
@@ -554,8 +555,10 @@ void VkApp::createGraphicsPipeline()
     // Onscreen rendering (second subpass) shaders
     auto vertShaderCode = GLtools::readFile("../../src/shaders/vert.spv");
     auto fragShaderCode = GLtools::readFile("../../src/shaders/frag.spv");
+    auto fragShaderCodeNormal = GLtools::readFile("../../src/shaders/fragNormal.spv");
     VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
     VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
+    VkShaderModule fragShaderModuleNormal = createShaderModule(fragShaderCodeNormal);
 
     VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
     vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -570,6 +573,14 @@ void VkApp::createGraphicsPipeline()
     fragShaderStageInfo.pName = "main";
 
     VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
+
+    VkPipelineShaderStageCreateInfo fragShaderStageInfoNormal{};
+    fragShaderStageInfoNormal.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    fragShaderStageInfoNormal.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+    fragShaderStageInfoNormal.module = fragShaderModuleNormal;
+    fragShaderStageInfoNormal.pName = "main";
+
+    VkPipelineShaderStageCreateInfo shaderStagesNormal[] = { vertShaderStageInfo, fragShaderStageInfoNormal };
 
 
 
@@ -619,7 +630,7 @@ void VkApp::createGraphicsPipeline()
     rasterizer.depthClampEnable = VK_FALSE;
     rasterizer.rasterizerDiscardEnable = VK_FALSE;
     rasterizer.polygonMode = VK_POLYGON_MODE_LINE /*VK_POLYGON_MODE_FILL*/;
-    rasterizer.lineWidth = 1.0f;
+    rasterizer.lineWidth = 2.0f;
     rasterizer.cullMode = VK_CULL_MODE_NONE; // VK_CULL_MODE_BACK_BIT;
     rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE; // VK_FRONT_FACE_CLOCKWISE;
     rasterizer.depthBiasEnable = VK_FALSE;
@@ -743,13 +754,23 @@ void VkApp::createGraphicsPipeline()
     if (vkCreateGraphicsPipelines(m_contextPtr->getDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_graphicsPipeline) != VK_SUCCESS) {
         throw std::runtime_error("failed to create graphics pipeline!");
     }
+
+    // defines rasterizer
+    VkPipelineRasterizationStateCreateInfo rasterizer2 = rasterizer;
+    rasterizer2.polygonMode = VK_POLYGON_MODE_FILL;
+    pipelineInfo.pStages = shaderStagesNormal;
+    pipelineInfo.pRasterizationState = &rasterizer2;
+    if (vkCreateGraphicsPipelines(m_contextPtr->getDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_graphicsPipelineNormal) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create graphics pipeline!");
+    }
     
 
     vkDestroyShaderModule(m_contextPtr->getDevice(), fragShaderModuleOffscreen, nullptr);
     vkDestroyShaderModule(m_contextPtr->getDevice(), vertShaderModuleOffscreen, nullptr);
     vkDestroyShaderModule(m_contextPtr->getDevice(), fragShaderModule, nullptr);
     vkDestroyShaderModule(m_contextPtr->getDevice(), vertShaderModule, nullptr);
-    
+    vkDestroyShaderModule(m_contextPtr->getDevice(), fragShaderModuleNormal, nullptr);
+
 
     infoLog() << "createGraphicsPipeline(): OK ";
 }
@@ -1029,7 +1050,7 @@ void VkApp::recordCommandBuffer(VkCommandBuffer _commandBuffer, uint32_t _imageI
     // -> we must define 3 clear values
     std::array<VkClearValue, 3> clearValues{}; 
     clearValues.at(0).color = { {0.05f, 0.05f, 0.05f, 1.0f} }; // color clear value for first color attachment (offscreen rendering)
-    clearValues.at(1).color = { {0.0f, 0.0f, 0.05f, 1.0f} };   // color clear value for second color attachment (onscreen gbuffer)
+    clearValues.at(1).color = { {0.0085f, 0.0085f, 0.1f, 1.0f} };   // color clear value for second color attachment (onscreen gbuffer)
     clearValues.at(2).depthStencil = { 1.0f, 0 };              // depth clear value for depth attachment
 
     renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
@@ -1091,11 +1112,17 @@ void VkApp::recordCommandBuffer(VkCommandBuffer _commandBuffer, uint32_t _imageI
         vkCmdDrawIndexed(_commandBuffer, static_cast<uint32_t>(m_dynMesh.getIndices().size() ), 1, 0, 0, 0); // indexed vertex buffer version
 
 
+        vkCmdBindPipeline(_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipelineNormal);
         VkBuffer vertexBuffers2[] = { m_surfMesh.getVertexBuffer() };
         vkCmdBindVertexBuffers(_commandBuffer, 0, 1, vertexBuffers2, offsets);
         vkCmdBindIndexBuffer(_commandBuffer, m_surfMesh.getIndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
         vkCmdBindDescriptorSets(_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &m_descriptorSets[m_currentFrame], 0, nullptr);
         vkCmdDrawIndexed(_commandBuffer, static_cast<uint32_t>(m_surfMesh.getIndices().size() ), 1, 0, 0, 0);
+    
+
+        vkCmdBindPipeline(_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
+        vkCmdDrawIndexed(_commandBuffer, static_cast<uint32_t>(m_surfMesh.getIndices().size() ), 1, 0, 0, 0);
+    
     }
 
     // Ends render pass
