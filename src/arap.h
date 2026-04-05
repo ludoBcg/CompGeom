@@ -10,12 +10,7 @@
 #ifndef ARAP_H
 #define ARAP_H
 
-#include <iostream>
-#include <vector>
-#include <assert.h>
-
-#define GLM_FORCE_RADIANS
-#include <glm/glm.hpp>
+#include "dynamicalmodel.h"
 
 #include <Eigen/Core>
 #include <Eigen/Sparse>
@@ -34,7 +29,7 @@ namespace CompGeom
 * pp 109-116, 2007.
 * cf. https://igl.ethz.ch/projects/ARAP/index.php
 */
-class Arap
+class Arap : public DynamicalModel
 {
     // Sparse LL^T Cholesky factorization
     typedef Eigen::SimplicialLLT<Eigen::SparseMatrix<double>, Eigen::Upper> ArapSimplicialLLT;
@@ -70,11 +65,62 @@ public:
     |                                        MISCELLANEOUS                                          |
     +-----------------------------------------------------------------------------------------------*/
 
-    bool initialize(std::vector<glm::vec3>& _vertices,
-                    std::vector<std::vector<bool> >& _adjacency,
-                    std::vector<std::pair<uint32_t, glm::vec3> >& _fixedAnchors,
-                    std::vector<std::pair<uint32_t, glm::vec3> >& _constraints,
-                    double _anchorsWeight);
+    /*!
+    * \fn initialize
+    * \brief Initializes dynamical model
+    * \param _vertices : List of vertices
+    * \param _indices : List of indices
+    * \param _fixedPointsIds : List of fixed points indices
+    * \param _constraintPoints : List of constraint points (Id, target pos)
+    * \return : success
+    */
+    bool initialize( std::vector<glm::vec3>& _verticesPos
+                   , std::vector<uint32_t>& _indices
+                   , std::vector<uint32_t>& _fixedPointsIds
+                   , std::vector<std::pair<uint32_t, glm::vec3> >& _constraintPoints) override;
+
+    /*!
+    * \fn iterate
+    * \brief Update system state for one timestep, using numerical integration
+    * \return : success
+    */
+    bool iterate() override;
+
+    /*!
+    * \fn getResult
+    * \brief Returns new vertices' position
+    * \param _res : List of vertices to return
+    * \return : success
+    */
+    bool getResult(std::vector<glm::vec3>& _res) override;
+
+
+
+
+    //bool initializebis(std::vector<glm::vec3>& _vertices,
+    //                std::vector<std::vector<bool> >& _adjacency,
+    //                std::vector<std::pair<uint32_t, glm::vec3> >& _fixedAnchors,
+    //                std::vector<std::pair<uint32_t, glm::vec3> >& _constraints,
+    //                double _anchorsWeight);
+
+    
+    /*!
+    * \fn getResult
+    * \brief Returns new vertices' coords from matrix X
+    */
+    //void getResultbis(std::vector<glm::vec3>& _res);
+
+    /*!
+    * \fn updateConstraints
+    * \brief Moves anchors' positions for live animation
+    */
+    void updateAnchors();
+
+    bool isAdjacencyEmpty() const;
+    unsigned int getVertexDegree(const unsigned int _id) const;
+
+
+protected:
 
     /*!
     * \fn buildMatrixL
@@ -92,44 +138,33 @@ public:
     * \fn extractRot
     * \brief Calculates rigid transformation 
     */
-    int extractRot(const Eigen::Matrix3d& _matJ, Eigen::Matrix3d& _matR);
+    void extractRot(const Eigen::Matrix3d& _matJ, Eigen::Matrix3d& _matR);
 
     /*!
     * \fn localStep
     * \brief Computes optimal transformation from x (in matrix B) to x' (in matrix X)
     */
-    int localStep();
+    void localStep();
 
     /*!
     * \fn globalStep
     * \brief Solve LX=B system to update values of X
+    * \return : success
     */
-    int globalStep();
+    bool globalStep();
 
     /*!
     * \fn l2Energy
     */
     double l2Energy();
-    
-    /*!
-    * \fn getResult
-    * \brief Returns new vertices' coords from matrix X
-    */
-    void getResult(std::vector<glm::vec3>& _res);
-
-    /*!
-    * \fn updateConstraints
-    * \brief Moves anchors' positions for live animation
-    */
-    void updateAnchors();
 
     /*!
     * \fn solve
     * \brief Complete solving process, i.e., one iteration for live animation
+    * \return : success
     */
-    int solve(double _eps);
+    bool solve(double _eps);
 
-protected:
 
     /*----------------------------------------------------------------------------------------------+
     |                                         ATTRIBUTES                                            |
@@ -146,6 +181,7 @@ protected:
 
     std::vector<glm::vec3> m_initVertices;       /* initial vertices */
     std::vector<std::vector<bool> > m_adjacency; /* adjacency matrix */
+
 
 }; // class Arap
 

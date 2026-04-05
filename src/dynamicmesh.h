@@ -57,9 +57,6 @@ public:
     virtual ~DynamicMesh() {};
 
     void createGrid(const float _lengthSide, const unsigned int _nbVertPerSide) override;
-
-    bool isAdjacencyEmpty() const;
-    unsigned int getVertexDegree(const unsigned int _id) const;
    
     bool buildMassSpringSystem(MassSpringSystem& _massSpringSystem);
     bool readMassSpringSystem(MassSpringSystem& _massSpringSystem);
@@ -72,9 +69,6 @@ public:
 
 
 protected:
-
-    // Adjacency matrix
-    std::vector<std::vector<bool> > m_adjacency;
 
     // List of fixed points
     std::vector<uint32_t> m_fixedPointsIds;

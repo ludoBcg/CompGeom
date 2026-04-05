@@ -23,27 +23,6 @@ namespace CompGeom
     {
         Mesh::createGrid(_lengthSide, _nbVertPerSide);
 
-        // initializes empty adjacency matrix
-        m_adjacency.clear();
-        m_adjacency = std::vector<std::vector<bool> >(_nbVertPerSide*_nbVertPerSide, std::vector<bool> (_nbVertPerSide*_nbVertPerSide, false));
-
-        // for each triangle
-        for(auto it = m_indices.begin(); it != m_indices.end(); it += 3)
-        {
-            // get the 3 vertices indices
-            unsigned int id0 = *it;
-            unsigned int id1 = *(it+1);
-            unsigned int id2 = *(it+2);
-
-            // add corresponding edges in adjacency matrix
-            // Edge (0,1)
-            m_adjacency.at(id0).at(id1) = m_adjacency.at(id1).at(id0) = true;
-            // Edge (1,2) 
-            m_adjacency.at(id1).at(id2) = m_adjacency.at(id2).at(id1) = true;
-            // Edge (2,0)
-            m_adjacency.at(id2).at(id0) = m_adjacency.at(id0).at(id2) = true;
-        }
-
         //// Temporary definition of hard-coded boundary conditions (5x5)
         //m_fixedPointsIds = { 0, 4, 20, 24 };
         //m_constraintPoints = { std::make_pair<uint32_t, glm::vec3>(12, glm::vec3(0.0, 0.0, 1.0) /*target pos*/) };
@@ -54,39 +33,6 @@ namespace CompGeom
         m_constraintPoints = { std::make_pair<uint32_t, glm::vec3>(5, glm::vec3(0.0, 0.0, 1.0) /*target pos*/) };
         m_constraintPointsFEM = { std::make_pair<uint32_t, glm::vec3>(5, glm::vec3(0.5, 0.5, 0.0) /*target pos*/) };
     }
-
-/*
- * Check if adjacency matrix is empty (i.e., contains only false) 
- */
-bool DynamicMesh::isAdjacencyEmpty() const
-{
-    
-    bool isEmpty = std::all_of(m_adjacency.begin(), m_adjacency.end(),
-                               [](const std::vector<bool>& _vec)
-                                {
-                                       return std::all_of(_vec.begin(), _vec.end(),
-                                                          [](bool _value){ return _value == false; });
-                                });
-
-    return isEmpty;
-}
-
-
-/*
- * Calculates the degree of a given vertex
- * (i.e., number of connected vertices in the first-ring neighborhood) 
- */
-unsigned int DynamicMesh::getVertexDegree(const unsigned int _id) const
-{
-
-    unsigned int cpt = 0;
-    for (auto it = m_adjacency.at(_id).begin(); it != m_adjacency.at(_id).end(); ++it)
-    {
-        if(*it == true)
-            cpt++;
-    }
-    return cpt;
-}
 
 
 /*
@@ -255,7 +201,7 @@ bool DynamicMesh::buildARAP(Arap& _arap)
         glm::vec3 position = verticesPos.at(m_fixedPointsIds.at(i));
         fixedAnchors.push_back(std::make_pair(id, position));
     }
-     std::vector<std::pair<uint32_t, glm::vec3> > constraints;
+    std::vector<std::pair<uint32_t, glm::vec3> > constraints;
     for (size_t i = 0; i < m_constraintPoints.size(); ++i)
     {
         // add constraint points as anchors
@@ -264,7 +210,7 @@ bool DynamicMesh::buildARAP(Arap& _arap)
         constraints.push_back(std::make_pair(id, position));
     }
 
-    _arap.initialize(verticesPos, m_adjacency, fixedAnchors, constraints, 100.0);
+    _arap.initialize(verticesPos, m_indices, m_fixedPointsIds, constraints);
 
     verticesPos.clear();
 

@@ -31,6 +31,7 @@ set(HEADERS
 	src/vkapp.h
 	src/mesh.h
 	src/dynamicmesh.h
+	src/dynamicalmodel.h
 	src/surfacemesh.h
 	src/image.h
 	src/point.h
