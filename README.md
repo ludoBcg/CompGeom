@@ -1,21 +1,28 @@
 # CompGeom
 Computational geometry sandbox
 
-## Features
+## 1. Features
 
 Deformable/dynamic mesh models:
 * Mass-spring systems
-* As-Rigid-As-Possible (ARAP) surfaces
+* As-Rigid-As-Possible (ARAP) surface modeling [1]
 * Finite Element Method (2D triangular elements)
+* Position Based Dynamics (PBD)
 * ...
 
 Parametric surfaces:
 * Bezier surfaces
-* B-spline surfaces
-* Thin Plate Spline (TPS) surfaces
+* B-splines
+* Thin Plate Spline (TPS) [2]
 * ...
 
-## External dependencies
+## 2. Sources
+
+* [1] https://igl.ethz.ch/projects/ARAP/index.php
+* [2] https://elonen.iki.fi/code/tpsdemo/
+
+
+## 3. External dependencies
 
 Requires the installation of Vulkan SDK: https://vulkan.lunarg.com/sdk
 

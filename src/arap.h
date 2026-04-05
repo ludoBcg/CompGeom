@@ -95,21 +95,6 @@ public:
     bool getResult(std::vector<glm::vec3>& _res) override;
 
 
-
-
-    //bool initializebis(std::vector<glm::vec3>& _vertices,
-    //                std::vector<std::vector<bool> >& _adjacency,
-    //                std::vector<std::pair<uint32_t, glm::vec3> >& _fixedAnchors,
-    //                std::vector<std::pair<uint32_t, glm::vec3> >& _constraints,
-    //                double _anchorsWeight);
-
-    
-    /*!
-    * \fn getResult
-    * \brief Returns new vertices' coords from matrix X
-    */
-    //void getResultbis(std::vector<glm::vec3>& _res);
-
     /*!
     * \fn updateConstraints
     * \brief Moves anchors' positions for live animation
