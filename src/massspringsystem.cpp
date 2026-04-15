@@ -16,6 +16,67 @@
 namespace CompGeom
 {
 
+	bool MassSpringSystem::initialize(std::vector<glm::vec3>& _verticesPos
+									, std::vector<uint32_t>& _indices
+									, std::vector<uint32_t>& _fixedPointsIds
+									, std::vector<std::pair<uint32_t, glm::vec3> >& _constraintPoints)
+	{
+		this->clear();
+
+		std::vector<std::pair<unsigned int, unsigned int> > vertIds;
+    
+		for (int i = 0; i < _verticesPos.size(); i++)
+		{
+			this->addPoint(_verticesPos.at(i), 1.0f, 0.1f);
+		}
+
+		for (int i = 0; i < _indices.size(); i += 3)
+		{
+			unsigned int id0 = _indices.at(i);
+			unsigned int id1 = _indices.at(i + 1);
+			unsigned int id2 = _indices.at(i + 2);
+
+			if( std::find(vertIds.begin(), vertIds.end(), std::make_pair(id0, id1)) == vertIds.end()
+			 && std::find(vertIds.begin(), vertIds.end(), std::make_pair(id1, id0)) == vertIds.end() )
+			{
+				this->addSpring(id0, id1, 0.25f);
+				vertIds.push_back(std::make_pair(id0, id1));
+			}
+
+			if( std::find(vertIds.begin(), vertIds.end(), std::make_pair(id1, id2)) == vertIds.end()
+			 && std::find(vertIds.begin(), vertIds.end(), std::make_pair(id2, id1)) == vertIds.end() )
+			{
+				this->addSpring(id1, id2, 0.25f);
+				vertIds.push_back(std::make_pair(id1, id2));
+			}
+
+			if( std::find(vertIds.begin(), vertIds.end(), std::make_pair(id2, id0)) == vertIds.end()
+			 && std::find(vertIds.begin(), vertIds.end(), std::make_pair(id0, id2)) == vertIds.end() )
+			{
+				this->addSpring(id2, id0, 0.25f);
+				vertIds.push_back(std::make_pair(id2, id0));
+			}
+		}
+
+		this->addConstraints(_fixedPointsIds, _constraintPoints);
+
+		return true;
+	}
+
+
+	bool MassSpringSystem::getResult(std::vector<glm::vec3>& _res)
+	{
+		_res.clear();
+
+		for (int i = 0; i < m_pointsT.size(); i++)
+		{
+			_res.push_back(m_pointsT.at(i).getPosition());
+		}
+
+		return true;
+	}
+
+
 	void MassSpringSystem::addPoint(glm::vec3 _pos, float _mass, float _damping)
 	{
 		Point pt(_pos, _mass, _damping);
@@ -118,7 +179,7 @@ namespace CompGeom
 	}
 
 
-	void MassSpringSystem::iterate()
+	bool MassSpringSystem::iterate()
 	{
 		float dt = 0.01f;
 		float damping = 0.05f;
@@ -319,6 +380,7 @@ namespace CompGeom
 				break;
 			}
 		}
+		return true;
 	}
 
 

@@ -10,9 +10,7 @@
 #ifndef PBD_H
 #define PBD_H
 
-#include <iostream>
-#include <vector>
-#include <assert.h>
+#include "dynamicalmodel.h"
 
 #include "numericalintegration.h"
 
@@ -70,7 +68,7 @@ public:
 * \class Pbd
 * \brief Position Based Dynamics
 */
-class Pbd
+class Pbd : public DynamicalModel
 {
 
 public:
@@ -108,6 +106,36 @@ public:
     +-----------------------------------------------------------------------------------------------*/
 
     /*!
+    * \fn initialize
+    * \brief Initializes dynamical model
+    * \param _vertices : List of vertices
+    * \param _indices : List of indices
+    * \param _fixedPointsIds : List of fixed points indices
+    * \param _constraintPoints : List of constraint points (Id, target pos)
+    * \return : success
+    */
+    bool initialize( std::vector<glm::vec3>& _verticesPos
+                   , std::vector<uint32_t>& _indices
+                   , std::vector<uint32_t>& _fixedPointsIds
+                   , std::vector<std::pair<uint32_t, glm::vec3> >& _constraintPoints) override;
+
+    /*!
+    * \fn iterate
+    * \brief Update system state for one timestep, using numerical integration
+    * \return : success
+    */
+    bool iterate() override;
+
+    /*!
+    * \fn getResult
+    * \brief Returns new vertices' position
+    * \param _res : List of vertices to return
+    * \return : success
+    */
+    bool getResult(std::vector<glm::vec3>& _res) override;
+
+
+    /*!
     * \fn addPoint
     * \brief Add a new point in m_pointsT
     */
@@ -137,12 +165,6 @@ public:
     * \brief Calculate spring forces based on current positions in m_pointsT
     */
     void updateInternalForces();
-
-    /*!
-    * \fn iterate
-    * \brief Update system state for one timestep, using numerical integration
-    */
-    void iterate();
 
     void project_DistanceConstraint(DistanceConstraint& _distanceConstraint, int _nbIterations);
     void project_AnchorConstraint(AnchorConstraint& _anchorConstraint);

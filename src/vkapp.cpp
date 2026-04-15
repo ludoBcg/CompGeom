@@ -61,7 +61,7 @@ void VkApp::initGeomModel()
 {
     // build grid geometry
     m_dynMesh.createGrid(1.5f, 4);
-    m_surfMesh.buildParametricSurface(m_dynMesh, 18, eParametricSurface::TPS);
+    m_surfMesh.buildParametricSurface(m_dynMesh, 18, eParametricSurface::BEZIER);
     m_surfMesh.createVertexBuffer(*m_contextPtr);
     m_surfMesh.createIndexBuffer(*m_contextPtr);
 
@@ -630,7 +630,7 @@ void VkApp::createGraphicsPipeline()
     rasterizer.depthClampEnable = VK_FALSE;
     rasterizer.rasterizerDiscardEnable = VK_FALSE;
     rasterizer.polygonMode = VK_POLYGON_MODE_LINE /*VK_POLYGON_MODE_FILL*/;
-    rasterizer.lineWidth = 2.0f;
+    rasterizer.lineWidth = 1.0f;
     rasterizer.cullMode = VK_CULL_MODE_NONE; // VK_CULL_MODE_BACK_BIT;
     rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE; // VK_FRONT_FACE_CLOCKWISE;
     rasterizer.depthBiasEnable = VK_FALSE;
@@ -1177,13 +1177,13 @@ void VkApp::updateGeom()
 {
     if (ANIMATION_MODEL == eAnimationModels::ARAP )
     {
-        m_arap.solve(1e-6);
+        m_arap.iterate();
         m_dynMesh.readARAP(m_arap);
     }
     else if (ANIMATION_MODEL == eAnimationModels::FEM )
     {
         m_fem.updateBoundaryConditions();
-        m_fem.solve();
+        m_fem.iterate();
         m_dynMesh.readFEM(m_fem);
     }
     else if (ANIMATION_MODEL == eAnimationModels::PBD )
@@ -1196,7 +1196,7 @@ void VkApp::updateGeom()
         m_massSpringSystem.iterate();
         m_dynMesh.readMassSpringSystem(m_massSpringSystem);
     }
-    m_surfMesh.updateParametricSurface(m_dynMesh, eParametricSurface::TPS);
+    m_surfMesh.updateParametricSurface(m_dynMesh, eParametricSurface::BEZIER);
     m_surfMesh.updateVertexBuffer(*m_contextPtr);
     m_dynMesh.updateVertexBuffer(*m_contextPtr);
 }

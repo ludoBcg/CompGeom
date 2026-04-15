@@ -16,18 +16,25 @@
 namespace CompGeom
 {
 
-void Fem::initialize(std::vector<glm::vec3>& _vertices, std::vector<uint32_t>& _indices,
-	                 double _mu, double _lambda)
+
+bool Fem::initialize( std::vector<glm::vec3>& _verticesPos
+					, std::vector<uint32_t>& _indices
+					, std::vector<uint32_t>& _fixedPointsIds
+					, std::vector<std::pair<uint32_t, glm::vec3> >& _constraintPoints)
 {
-	m_initVertices = _vertices;
+	m_initVertices = _verticesPos;
     m_indices = _indices;
 
-	m_mu = _mu;
-	m_lambda = _lambda;
+	m_mu = 10.5 /*_mu*/;
+	m_lambda = 0.5 /*_lambda*/;
 
 	buildE();
-
 	assembleK();
+
+
+	this->addConstraints(_fixedPointsIds, _constraintPoints);
+
+	return true;
 }
 
 
@@ -338,7 +345,7 @@ void Fem::updateBoundaryConditions()
 }
 
 
-void Fem::solve()
+bool Fem::iterate()
 {
 	assert(m_matK.row(0).size() == m_vecU.size());
 	assert(m_matK.row(0).size() == m_vecF.size());
@@ -354,16 +361,19 @@ void Fem::solve()
 
 	info = m_CG.info();
     computationInfo = info == Eigen::Success ? "Success" : Eigen::NumericalIssue ? "NumericalIssue" : "Unknown";
-    if(computationInfo != "Success")
+	if (computationInfo != "Success")
+	{
 		std::cerr << "m_CG solve error:       " << computationInfo << std::endl;
+		return false;
+	}
 	
 	//std::cout << "#iterations:      " << m_CG.iterations() << std::endl;
     //std::cout << "estimated error:  " << m_CG.error()      << std::endl;
-	
+	return true;
 }
 
 
-void Fem::getResult(std::vector<glm::vec3>& _res)
+bool Fem::getResult(std::vector<glm::vec3>& _res)
 {
     _res.clear();
 
@@ -400,6 +410,7 @@ void Fem::getResult(std::vector<glm::vec3>& _res)
 
 		cpt++;
 	}
+	return true;
 }
 	
 

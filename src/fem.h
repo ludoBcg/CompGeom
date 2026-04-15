@@ -10,12 +10,7 @@
 #ifndef FEM_H
 #define FEM_H
 
-#include <iostream>
-#include <vector>
-#include <assert.h>
-
-#define GLM_FORCE_RADIANS
-#include <glm/glm.hpp>
+#include "dynamicalmodel.h"
 
 #include <Eigen/Core>
 #include <Eigen/Sparse>
@@ -48,7 +43,7 @@ namespace CompGeom
 * K * u = f
 *
 */
-class Fem
+class Fem : public DynamicalModel
 {
     // Conjugate gradient solver
     typedef Eigen::ConjugateGradient<Eigen::MatrixXd, Eigen::Lower|Eigen::Upper> FemCG;
@@ -83,11 +78,31 @@ public:
     |                                        MISCELLANEOUS                                          |
     +-----------------------------------------------------------------------------------------------*/
 
-    void initialize(std::vector<glm::vec3>& _vertices, std::vector<uint32_t>& _indices,
-	                double _mu, double _lambda);
+
+    /*!
+    * \fn initialize
+    * \brief Initializes dynamical model
+    * \param _vertices : List of vertices
+    * \param _indices : List of indices
+    * \param _fixedPointsIds : List of fixed points indices
+    * \param _constraintPoints : List of constraint points (Id, target pos)
+    * \return : success
+    */
+    bool initialize( std::vector<glm::vec3>& _verticesPos
+                   , std::vector<uint32_t>& _indices
+                   , std::vector<uint32_t>& _fixedPointsIds
+                   , std::vector<std::pair<uint32_t, glm::vec3> >& _constraintPoints) override;
+
+
+    /*!
+    * \fn getResult
+    * \brief Returns new vertices' position
+    * \param _res : List of vertices to return
+    * \return : success
+    */
+    bool getResult(std::vector<glm::vec3>& _res) override;
 
     void addConstraints(std::vector<uint32_t>& _fixedConstraints, std::vector<std::pair<uint32_t, glm::vec3> > _movingConstraint);
-
 
     /*!
     * \fn buildPe
@@ -131,15 +146,13 @@ public:
     */
     void setBoundaryConditionsForces();
 
-    void getResult(std::vector<glm::vec3>& _res);
-
     void updateBoundaryConditions();
 
     /*!
-    * \fn solve
+    * \fn iterate
     * \brief Calculates the displacements u by solving the global system K * u = f
     */
-    void solve();
+    bool iterate() override;
 
 protected:
 

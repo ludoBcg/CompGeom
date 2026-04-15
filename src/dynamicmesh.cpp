@@ -23,15 +23,16 @@ namespace CompGeom
     {
         Mesh::createGrid(_lengthSide, _nbVertPerSide);
 
-        //// Temporary definition of hard-coded boundary conditions (5x5)
-        //m_fixedPointsIds = { 0, 4, 20, 24 };
-        //m_constraintPoints = { std::make_pair<uint32_t, glm::vec3>(12, glm::vec3(0.0, 0.0, 1.0) /*target pos*/) };
-        //m_constraintPointsFEM = { std::make_pair<uint32_t, glm::vec3>(12, glm::vec3(0.5, 0.5, 0.0) /*target pos*/) };
+        //// Temporary definition of hard-coded boundary conditions (4x4)
+        //m_fixedPointsIds = { 0, 3, 12, 15 };
+        //m_constraintPoints = { std::make_pair<uint32_t, glm::vec3>(5, glm::vec3(0.0, 0.0, 1.0) /*target pos*/) };
+        //m_constraintPointsFEM = { std::make_pair<uint32_t, glm::vec3>(5, glm::vec3(0.5, 0.5, 0.0) /*target pos*/) };
 
         // Temporary definition of hard-coded boundary conditions (4x4)
         m_fixedPointsIds = { 0, 3, 12, 15 };
         m_constraintPoints = { std::make_pair<uint32_t, glm::vec3>(5, glm::vec3(0.0, 0.0, 1.0) /*target pos*/) };
         m_constraintPointsFEM = { std::make_pair<uint32_t, glm::vec3>(5, glm::vec3(0.5, 0.5, 0.0) /*target pos*/) };
+    
     }
 
 
@@ -40,44 +41,13 @@ namespace CompGeom
  */
 bool DynamicMesh::buildMassSpringSystem(MassSpringSystem& _massSpringSystem)
 {
-    _massSpringSystem.clear();
-
-    std::vector<std::pair<unsigned int, unsigned int> > vertIds;
-    
-    for (int i = 0; i < m_vertices.size(); i++)
+    std::vector<glm::vec3> verticesPos;
+    for (auto it = m_vertices.begin(); it != m_vertices.end(); ++it)
     {
-        _massSpringSystem.addPoint(m_vertices.at(i).pos, 1.0f, 0.1f);
+        verticesPos.push_back(it->pos);
     }
 
-    for (int i = 0; i < m_indices.size(); i += 3)
-    {
-        unsigned int id0 = m_indices.at(i);
-        unsigned int id1 = m_indices.at(i + 1);
-        unsigned int id2 = m_indices.at(i + 2);
-
-        if( std::find(vertIds.begin(), vertIds.end(), std::make_pair(id0, id1)) == vertIds.end()
-         && std::find(vertIds.begin(), vertIds.end(), std::make_pair(id1, id0)) == vertIds.end() )
-        {
-            _massSpringSystem.addSpring(id0, id1, 0.25f);
-            vertIds.push_back(std::make_pair(id0, id1));
-        }
-
-        if( std::find(vertIds.begin(), vertIds.end(), std::make_pair(id1, id2)) == vertIds.end()
-         && std::find(vertIds.begin(), vertIds.end(), std::make_pair(id2, id1)) == vertIds.end() )
-        {
-            _massSpringSystem.addSpring(id1, id2, 0.25f);
-            vertIds.push_back(std::make_pair(id1, id2));
-        }
-
-        if( std::find(vertIds.begin(), vertIds.end(), std::make_pair(id2, id0)) == vertIds.end()
-         && std::find(vertIds.begin(), vertIds.end(), std::make_pair(id0, id2)) == vertIds.end() )
-        {
-            _massSpringSystem.addSpring(id2, id0, 0.25f);
-            vertIds.push_back(std::make_pair(id2, id0));
-        }
-    }
-
-    _massSpringSystem.addConstraints(m_fixedPointsIds, m_constraintPoints);
+    _massSpringSystem.initialize(verticesPos, m_indices, m_fixedPointsIds, m_constraintPoints);
 
     return true;
 }
@@ -88,19 +58,22 @@ bool DynamicMesh::buildMassSpringSystem(MassSpringSystem& _massSpringSystem)
  */
 bool DynamicMesh::readMassSpringSystem(MassSpringSystem& _massSpringSystem)
 {
-    if (m_vertices.size() != _massSpringSystem.getPointsT().size())
+    std::vector<glm::vec3> newPos;
+    _massSpringSystem.getResult(newPos);
+
+    assert(m_vertices.size() == newPos.size()) ;
+
+    if (m_vertices.size() != newPos.size())
     {
-        std::cerr << "m_vertices.size() != _massSpringSystem.getPointsT().size() " << std::endl;
+        std::cerr << "m_vertices.size() != _massSpringSystem.getResult().size() " << std::endl;
         return false;
     }
 
-    assert(m_vertices.size() == _massSpringSystem.getPointsT().size()) ;
-
-    for (int i = 0; i < m_vertices.size(); i++)
+    for (size_t i = 0; i < m_vertices.size(); i++)
     {
-        m_vertices.at(i).pos = _massSpringSystem.getPointsT().at(i).getPosition();
+        m_vertices.at(i).pos = newPos.at(i);
     }   
-    
+
     return true;
 }
 
@@ -110,49 +83,13 @@ bool DynamicMesh::readMassSpringSystem(MassSpringSystem& _massSpringSystem)
  */
 bool DynamicMesh::buildPBD(Pbd& _pbd)
 {
-    _pbd.clear();
-
-    std::vector<std::pair<unsigned int, unsigned int> > vertIds;
-    
-    for (int i = 0; i < m_vertices.size(); i++)
+    std::vector<glm::vec3> verticesPos;
+    for (auto it = m_vertices.begin(); it != m_vertices.end(); ++it)
     {
-        _pbd.addPoint(m_vertices.at(i).pos, 1.0f, 0.1f);
+        verticesPos.push_back(it->pos);
     }
 
-    for (int i = 0; i < m_indices.size(); i += 3)
-    {
-        unsigned int id0 = m_indices.at(i);
-        unsigned int id1 = m_indices.at(i + 1);
-        unsigned int id2 = m_indices.at(i + 2);
-
-        if( std::find(vertIds.begin(), vertIds.end(), std::make_pair(id0, id1)) == vertIds.end()
-         && std::find(vertIds.begin(), vertIds.end(), std::make_pair(id1, id0)) == vertIds.end() )
-        {
-            _pbd.addDistanceConstraint(id0, id1, 0.5f);
-            vertIds.push_back(std::make_pair(id0, id1));
-        }
-
-        if( std::find(vertIds.begin(), vertIds.end(), std::make_pair(id1, id2)) == vertIds.end()
-         && std::find(vertIds.begin(), vertIds.end(), std::make_pair(id2, id1)) == vertIds.end() )
-        {
-            _pbd.addDistanceConstraint(id1, id2, 0.5f);
-            vertIds.push_back(std::make_pair(id1, id2));
-        }
-
-        if( std::find(vertIds.begin(), vertIds.end(), std::make_pair(id2, id0)) == vertIds.end()
-         && std::find(vertIds.begin(), vertIds.end(), std::make_pair(id0, id2)) == vertIds.end() )
-        {
-            _pbd.addDistanceConstraint(id2, id0, 0.5f);
-            vertIds.push_back(std::make_pair(id2, id0));
-        }
-    }
-
-    _pbd.addConstraints(m_fixedPointsIds, m_constraintPoints);
-
-    for (auto it = m_fixedPointsIds.begin(); it != m_fixedPointsIds.end(); ++it)
-    {
-        _pbd.addAnchorConstraint(*it, m_vertices.at(*it).pos);
-    }
+    _pbd.initialize(verticesPos, m_indices, m_fixedPointsIds, m_constraintPoints);
 
     return true;
 }
@@ -163,19 +100,21 @@ bool DynamicMesh::buildPBD(Pbd& _pbd)
  */
 bool DynamicMesh::readPBD(Pbd& _pbd)
 {
-    if (m_vertices.size() != _pbd.getPointsT().size())
+    std::vector<glm::vec3> newPos;
+    _pbd.getResult(newPos);
+
+    assert(m_vertices.size() == newPos.size()) ;
+
+    if (m_vertices.size() != newPos.size())
     {
-        std::cerr << "m_vertices.size() != _pbd.getPointsT().size() " << std::endl;
+        std::cerr << "m_vertices.size() != _pbd.getResult().size() " << std::endl;
         return false;
     }
 
-    assert(m_vertices.size() == _pbd.getPointsT().size()) ;
-
-    for (int i = 0; i < m_vertices.size(); i++)
+    for (size_t i = 0; i < m_vertices.size(); i++)
     {
-        m_vertices.at(i).pos = _pbd.getPointsT().at(i).getPosition();
+        m_vertices.at(i).pos = newPos.at(i);
     }   
-    
     return true;
 }
 
@@ -251,12 +190,9 @@ bool DynamicMesh::buildFEM(Fem& _fem)
         verticesPos.push_back(it->pos);
     }   
 
-    _fem.initialize(verticesPos, m_indices, 10.5, 0.5);
+     _fem.initialize(verticesPos, m_indices, m_fixedPointsIds, m_constraintPointsFEM);
 
     verticesPos.clear();
-
-    _fem.addConstraints(m_fixedPointsIds, m_constraintPointsFEM);
-    //_fem.solve();
 
     return true;
 }
