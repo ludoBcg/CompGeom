@@ -23,10 +23,8 @@
 namespace CompGeom
 {
 
-class MassSpringSystem;
-class Arap;
-class Fem;
-class Pbd;
+class DynamicalModel;
+
 
 class DynamicMesh : public Mesh
 {
@@ -58,14 +56,8 @@ public:
 
     void createGrid(const float _lengthSide, const unsigned int _nbVertPerSide) override;
    
-    bool buildMassSpringSystem(MassSpringSystem& _massSpringSystem);
-    bool readMassSpringSystem(MassSpringSystem& _massSpringSystem);
-    bool buildPBD(Pbd& _pbd);
-    bool readPBD(Pbd& _pbd);
-    bool buildARAP(Arap& _arap);
-    bool readARAP(Arap& _arap);
-    bool buildFEM(Fem& _fem);
-    bool readFEM(Fem& _fem);
+    bool buildDynamicalModel(DynamicalModel& _model);
+    bool readDynamicalModel(DynamicalModel& _model);
 
 
 protected:

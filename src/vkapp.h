@@ -49,7 +49,7 @@ class VkApp
         PBD,        /* Position Based Dynamics */
     };
 
-    const eAnimationModels ANIMATION_MODEL = eAnimationModels::PBD;
+    const eAnimationModels ANIMATION_MODEL = eAnimationModels::ARAP;
 
     const int MAX_FRAMES_IN_FLIGHT = 2;
 

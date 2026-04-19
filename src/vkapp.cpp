@@ -70,7 +70,7 @@ void VkApp::initGeomModel()
 
     if (ANIMATION_MODEL != eAnimationModels::ARAP && ANIMATION_MODEL != eAnimationModels::FEM && ANIMATION_MODEL != eAnimationModels::PBD)
     {
-        m_dynMesh.buildMassSpringSystem(m_massSpringSystem);
+        m_dynMesh.buildDynamicalModel(m_massSpringSystem);
     }
 
     switch (ANIMATION_MODEL)
@@ -112,23 +112,23 @@ void VkApp::initGeomModel()
         }
         case eAnimationModels::ARAP:
         {
-            m_dynMesh.buildARAP(m_arap);
-            m_dynMesh.readARAP(m_arap);
-            m_dynMesh.updateVertexBuffer(*m_contextPtr);
+            m_dynMesh.buildDynamicalModel(m_arap);
+            m_dynMesh.readDynamicalModel(m_arap);
+            //m_dynMesh.updateVertexBuffer(*m_contextPtr);
 
             break;
         }
         case eAnimationModels::FEM:
         {
-            m_dynMesh.buildFEM(m_fem);
-            m_dynMesh.readFEM(m_fem);
+            m_dynMesh.buildDynamicalModel(m_fem);
+            m_dynMesh.readDynamicalModel(m_fem);
             m_dynMesh.updateVertexBuffer(*m_contextPtr);
 
             break;
         }
         case eAnimationModels::PBD:
         {
-            m_dynMesh.buildPBD(m_pbd);
+            m_dynMesh.buildDynamicalModel(m_pbd);
             break;
         }
     }
@@ -1178,23 +1178,23 @@ void VkApp::updateGeom()
     if (ANIMATION_MODEL == eAnimationModels::ARAP )
     {
         m_arap.iterate();
-        m_dynMesh.readARAP(m_arap);
+        m_dynMesh.readDynamicalModel(m_arap);
     }
     else if (ANIMATION_MODEL == eAnimationModels::FEM )
     {
         m_fem.updateBoundaryConditions();
         m_fem.iterate();
-        m_dynMesh.readFEM(m_fem);
+        m_dynMesh.readDynamicalModel(m_fem);
     }
     else if (ANIMATION_MODEL == eAnimationModels::PBD )
     {
         m_pbd.iterate();
-        m_dynMesh.readPBD(m_pbd);
+        m_dynMesh.readDynamicalModel(m_pbd);
     }
     else
     {
         m_massSpringSystem.iterate();
-        m_dynMesh.readMassSpringSystem(m_massSpringSystem);
+        m_dynMesh.readDynamicalModel(m_massSpringSystem);
     }
     m_surfMesh.updateParametricSurface(m_dynMesh, eParametricSurface::BEZIER);
     m_surfMesh.updateVertexBuffer(*m_contextPtr);
