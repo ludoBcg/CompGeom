@@ -66,19 +66,125 @@ glm::vec3 SurfaceMesh::computeBezierPt(const std::array<std::array<glm::vec3, 4>
             double Bv = BernsteinCoeff(degree, j, _v);
             float coeff = static_cast<float>(Bu * Bv);
             
-            surfacePoint.x += _ctrlPoints.at(i).at(j).x * coeff;
-            surfacePoint.y += _ctrlPoints.at(i).at(j).y * coeff;
-            surfacePoint.z += _ctrlPoints.at(i).at(j).z * coeff;
+            surfacePoint += _ctrlPoints.at(i).at(j) * coeff;
         }
     }
     return surfacePoint;
 }
 
 
+
+
+int findKnotSpan(int _nbCtrlPts, int _degree, double _t, const std::vector<double>& _knots)
+{
+    // ...
+
+    // fallback
+    return _degree; 
+}
+
+glm::vec3 deBoor(int _degree, int _knotSpan, double _u, double _v,
+                 const std::vector<double>& _knots,
+                 const std::array<std::array<glm::vec3, 4>, 4>& _ctrlPoints)
+{
+    // Step 1: De Boor in u direction
+
+    // store result
+    std::vector<glm::vec3> resU(_degree + 1);
+
+    // for each row in ctrl points grid
+    for (int ctrlX = 0; ctrlX <= _degree; ctrlX++)
+    {
+        // Init list with control points of current row
+        std::vector<glm::vec3> newPts_list(_degree + 1);
+        for (int ctrlY = 0; ctrlY <= _degree; ctrlY++)
+        {
+            newPts_list.at(ctrlY) = _ctrlPoints.at(_knotSpan - _degree + ctrlY).at(_knotSpan - _degree + ctrlX);
+        }
+
+        // De Boor in u
+        for (int i = 1; i <= _degree; i++)
+        {
+            for (int k = i; k <= _degree; k++)
+            {
+                int id = _knotSpan - _degree + k;
+                double denom = _knots.at(id + _degree - i + 1) - _knots.at(id);
+                float alpha = (denom == 0.0) ? 0.0 : (_u - _knots.at(id)) / denom;
+
+                // new value is linear interpolation between 2 neighbours old values
+                newPts_list.at(k) = (1.0f - alpha) * newPts_list.at(k - 1) + alpha * newPts_list.at(k);
+            }
+        }
+
+        resU.at(ctrlX) = newPts_list.at(_degree);
+    }
+
+
+    // Step 2: De Boor in v direction
+
+    // store final result
+    std::vector<glm::vec3> resUV(_degree + 1);
+    // Init with result from first step
+    for (int ctrlX = 0; ctrlX <= _degree; ctrlX++)
+        resUV.at(ctrlX) = resU.at(ctrlX);
+
+    for (int j = 1; j <= _degree; j++)
+    {
+        for (int l = j; l <= _degree; l++)
+        {
+            int id = _knotSpan - _degree + l;
+            float denom = _knots.at(id + _degree - j + 1) - _knots.at(id);
+            float alpha = (denom == 0.0) ? 0.0 : (_v - _knots.at(id)) / denom;
+
+            // new value is linear interpolation between 2 neighbours old values
+            resUV.at(l) = (1.0f - alpha) * resUV.at(l - 1) + alpha * resUV.at(l);
+        }
+    }
+
+    return resUV.at(_degree);
+}
+
+glm::vec3 SurfaceMesh::computeBsplinePtDeBoor(const std::array<std::array<glm::vec3, 4>, 4>& _ctrlPoints, 
+                                              const float _u, const float _v) 
+{
+    const int nbCtrlPts = 4;
+    const int degree = nbCtrlPts - 1;
+
+    if (_ctrlPoints.size() != 4 || _ctrlPoints.front().size() != 4)
+    {
+        std::cerr << "Number of control point array must be 4x4 for  bicubic b-spline surface" << std::endl;
+    }
+
+    glm::vec3 surfacePoint(0.0f, 0.0f, 0.0f);
+
+    // Build clamped uniform knot vector
+    std::vector<double> knots(8);
+    for (int i = 0; i < 8; ++i)
+    {
+        if (i <= degree)
+            knots.at(i) = 0.0;
+        else /*if (i >= 8 - degree)*/
+            knots.at(i) = 1.0;
+    }
+
+    for (int i = 0; i < nbCtrlPts; ++i)
+    {
+        for (int j = 0; j < nbCtrlPts; ++j)
+        {    
+            int k = findKnotSpan(nbCtrlPts, degree, _u, knots);
+            glm::vec3 pt = deBoor(degree, k, _u, _v, knots, _ctrlPoints);
+
+            surfacePoint = pt;
+        }
+    }
+    
+    return surfacePoint;
+}
+
 double SurfaceMesh::RiesenfeldCoeff(int _n, int _i, double _t)
 {
     // Compute Riesenfeld polynomial
-    // R_i^n(t) = (n+1) * sum_(k=0)^(n-1)( (-1)^k * (t+m-i-k)^n / (k!(m-k+1)!) )
+    // R_i^n(t) = (n+1) * sum_(k=0)^(n-i)( (-1)^k * (t+n-i-k)^n / (k!(n-k+1)!) )
 
     double sum = 0.0; 
 	for(int k = 0; k <=_n-_i; k++)
@@ -109,9 +215,7 @@ glm::vec3 SurfaceMesh::computeBsplinePt(const std::array<std::array<glm::vec3, 4
             double R2 = RiesenfeldCoeff(degree, j, _v);
 			float Ruv = static_cast<float>(R1 * R2);
                        
-            surfacePoint.x += _ctrlPoints.at(i).at(j).x * Ruv;
-            surfacePoint.y += _ctrlPoints.at(i).at(j).y * Ruv;
-            surfacePoint.z += _ctrlPoints.at(i).at(j).z * Ruv;
+            surfacePoint += _ctrlPoints.at(i).at(j) * Ruv;
         }
     }
     
@@ -174,7 +278,7 @@ void SurfaceMesh::buildParametricSurface(Mesh& _ctrlPolygon, int _nbSteps, ePara
             if(_paramSurface == eParametricSurface::BEZIER)
                 pos = computeBezierPt(ctrlPoints, u, v);
             else if(_paramSurface == eParametricSurface::BSPLINE)
-                pos = computeBsplinePt(ctrlPoints, u, v);
+                pos = computeBsplinePtDeBoor(ctrlPoints, u, v);
 
             // add vertex to mesh
             Vertex vert{ pos /* pos */, {0.4f, 0.6f, 0.2f} /* col */, 
@@ -266,7 +370,7 @@ void SurfaceMesh::updateParametricSurface(Mesh& _ctrlPolygon, eParametricSurface
             if(_paramSurface == eParametricSurface::BEZIER)
                 pos = computeBezierPt(ctrlPoints, u, v);
             else if(_paramSurface == eParametricSurface::BSPLINE)
-                pos = computeBsplinePt(ctrlPoints, u, v);
+                pos = computeBsplinePtDeBoor(ctrlPoints, u, v);
 
             // update vertex position
             if(id < nbVertices)

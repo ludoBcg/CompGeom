@@ -61,7 +61,7 @@ void VkApp::initGeomModel()
 {
     // build grid geometry
     m_dynMesh.createGrid(1.5f, 4);
-    m_surfMesh.buildParametricSurface(m_dynMesh, 18, eParametricSurface::BEZIER);
+    m_surfMesh.buildParametricSurface(m_dynMesh, 18, eParametricSurface::BSPLINE);
     m_surfMesh.createVertexBuffer(*m_contextPtr);
     m_surfMesh.createIndexBuffer(*m_contextPtr);
 
@@ -151,7 +151,7 @@ void VkApp::initVulkan()
     createImageViews();
     createRenderPass();
     createDescriptorSetLayout();
-    createGraphicsPipeline(); 
+    createGraphicsPipeline();
     m_contextPtr->createCommandPool();
     createColorResources();
     createDepthResources();
@@ -217,8 +217,8 @@ void VkApp::cleanup()
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) 
     {
-        vkDestroyBuffer(m_contextPtr->getDevice(), m_uniformBuffers[i], nullptr);
-        vkFreeMemory(m_contextPtr->getDevice(), m_uniformBuffersMemory[i], nullptr);
+        vkDestroyBuffer(m_contextPtr->getDevice(), m_uniformBuffers.at(i), nullptr);
+        vkFreeMemory(m_contextPtr->getDevice(), m_uniformBuffersMemory.at(i), nullptr);
     }
 
     vkDestroyDescriptorPool(m_contextPtr->getDevice(), m_descriptorPool, nullptr);
@@ -231,16 +231,15 @@ void VkApp::cleanup()
     vkDestroyPipeline(m_contextPtr->getDevice(), m_graphicsPipeline, nullptr);
     vkDestroyPipeline(m_contextPtr->getDevice(), m_graphicsPipelineNormal, nullptr);
     vkDestroyPipelineLayout(m_contextPtr->getDevice(), m_pipelineLayoutOffscreen, nullptr);
-    vkDestroyPipelineLayout(m_contextPtr->getDevice(), m_pipelineLayout, nullptr);
-    
+    vkDestroyPipelineLayout(m_contextPtr->getDevice(), m_pipelineLayout, nullptr);   
 
     vkDestroyRenderPass(m_contextPtr->getDevice(), m_renderPass, nullptr);
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) 
     {
-        vkDestroySemaphore(m_contextPtr->getDevice(), m_imageAvailableSemaphores[i], nullptr);
-        vkDestroySemaphore(m_contextPtr->getDevice(), m_renderFinishedSemaphores[i], nullptr);
-        vkDestroyFence(m_contextPtr->getDevice(), m_inFlightFences[i], nullptr);
+        vkDestroySemaphore(m_contextPtr->getDevice(), m_imageAvailableSemaphores.at(i), nullptr);
+        vkDestroySemaphore(m_contextPtr->getDevice(), m_renderFinishedSemaphores.at(i), nullptr);
+        vkDestroyFence(m_contextPtr->getDevice(), m_inFlightFences.at(i), nullptr);
     }
 
     // Command buffers are automatically freed when their command pool is destroyed
@@ -368,7 +367,7 @@ void VkApp::createImageViews()
 
     for (uint32_t i = 0; i < m_swapChainImages.size(); i++) 
     {
-        m_swapChainImageViews[i] = createImageView(m_swapChainImages[i], m_swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+        m_swapChainImageViews.at(i) = createImageView(m_swapChainImages.at(i), m_swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
     }
 
     infoLog() << "createImageViews(): OK ";
@@ -810,7 +809,7 @@ void VkApp::createFramebuffers()
         std::array<VkImageView, 4> attachments = { m_offscreenImage.getImageView(),
                                                    m_colorImage.getImageView(),
                                                    m_depthImage.getImageView(),
-                                                   m_swapChainImageViews[i] };
+                                                   m_swapChainImageViews.at(i) };
 
         VkFramebufferCreateInfo framebufferInfo{};
         framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -821,7 +820,7 @@ void VkApp::createFramebuffers()
         framebufferInfo.height = m_swapChainExtent.height;
         framebufferInfo.layers = 1;
 
-        if (vkCreateFramebuffer(m_contextPtr->getDevice(), &framebufferInfo, nullptr, &m_swapChainFramebuffers[i]) != VK_SUCCESS) {
+        if (vkCreateFramebuffer(m_contextPtr->getDevice(), &framebufferInfo, nullptr, &m_swapChainFramebuffers.at(i)) != VK_SUCCESS) {
             throw std::runtime_error("failed to create framebuffer!");
         }
     }
@@ -932,9 +931,9 @@ void VkApp::createUniformBuffers()
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) 
     {
         createBuffer(m_contextPtr->getPhysicalDevice(), m_contextPtr->getDevice(), bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                     m_uniformBuffers[i], m_uniformBuffersMemory[i]);
+                     m_uniformBuffers.at(i), m_uniformBuffersMemory.at(i));
 
-        vkMapMemory(m_contextPtr->getDevice(), m_uniformBuffersMemory[i], 0, bufferSize, 0, &m_uniformBuffersMapped[i]);
+        vkMapMemory(m_contextPtr->getDevice(), m_uniformBuffersMemory.at(i), 0, bufferSize, 0, &m_uniformBuffersMapped.at(i));
     }
 }
 
@@ -1158,9 +1157,9 @@ void VkApp::createSyncObjects()
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        if (vkCreateSemaphore(m_contextPtr->getDevice(), &semaphoreInfo, nullptr, &m_imageAvailableSemaphores[i]) != VK_SUCCESS ||
-            vkCreateSemaphore(m_contextPtr->getDevice(), &semaphoreInfo, nullptr, &m_renderFinishedSemaphores[i]) != VK_SUCCESS ||
-            vkCreateFence(m_contextPtr->getDevice(), &fenceInfo, nullptr, &m_inFlightFences[i]) != VK_SUCCESS)
+        if (vkCreateSemaphore(m_contextPtr->getDevice(), &semaphoreInfo, nullptr, &m_imageAvailableSemaphores.at(i)) != VK_SUCCESS ||
+            vkCreateSemaphore(m_contextPtr->getDevice(), &semaphoreInfo, nullptr, &m_renderFinishedSemaphores.at(i)) != VK_SUCCESS ||
+            vkCreateFence(m_contextPtr->getDevice(), &fenceInfo, nullptr, &m_inFlightFences.at(i)) != VK_SUCCESS)
         {
             throw std::runtime_error("failed to create semaphores!");
         }
@@ -1196,7 +1195,7 @@ void VkApp::updateGeom()
         m_massSpringSystem.iterate();
         m_dynMesh.readDynamicalModel(m_massSpringSystem);
     }
-    m_surfMesh.updateParametricSurface(m_dynMesh, eParametricSurface::BEZIER);
+    m_surfMesh.updateParametricSurface(m_dynMesh, eParametricSurface::BSPLINE);
     m_surfMesh.updateVertexBuffer(*m_contextPtr);
     m_dynMesh.updateVertexBuffer(*m_contextPtr);
 }
@@ -1287,12 +1286,12 @@ void VkApp::cleanupSwapChain()
 
     for (size_t i = 0; i < m_swapChainFramebuffers.size(); i++)
     {
-        vkDestroyFramebuffer(m_contextPtr->getDevice(), m_swapChainFramebuffers[i], nullptr);
+        vkDestroyFramebuffer(m_contextPtr->getDevice(), m_swapChainFramebuffers.at(i), nullptr);
     }
 
     for (size_t i = 0; i < m_swapChainImageViews.size(); i++)
     {
-        vkDestroyImageView(m_contextPtr->getDevice(), m_swapChainImageViews[i], nullptr);
+        vkDestroyImageView(m_contextPtr->getDevice(), m_swapChainImageViews.at(i), nullptr);
     }
 
     vkDestroySwapchainKHR(m_contextPtr->getDevice(), m_swapChain, nullptr);

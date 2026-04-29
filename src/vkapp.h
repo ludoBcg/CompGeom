@@ -49,11 +49,11 @@ class VkApp
         PBD,        /* Position Based Dynamics */
     };
 
-    const eAnimationModels ANIMATION_MODEL = eAnimationModels::ARAP;
+    const eAnimationModels ANIMATION_MODEL = eAnimationModels::MS_FWE;
 
     const int MAX_FRAMES_IN_FLIGHT = 2;
 
-
+    
 public:
 
     void run();
@@ -130,8 +130,8 @@ private:
 
     // Descriptors (i.e., uniforms)
     VkDescriptorPool m_descriptorPool;
-    std::vector<VkDescriptorSet>  m_descriptorSets;
-
+    std::vector<VkDescriptorSet> m_descriptorSets;
+    
     void initGeomModel();
 
     // main steps of run()

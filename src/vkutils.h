@@ -59,7 +59,7 @@ namespace CompGeom
         alignas(16) glm::vec3 lightPos;
     };
 
-
+    
 
     // List of validation layers to enable
     const std::vector<const char*> validationLayers = {

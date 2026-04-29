@@ -133,6 +133,9 @@ protected:
     glm::vec3 computeBsplinePt(const std::array<std::array<glm::vec3, 4>, 4>& _ctrlPoints, 
                                const float _u, const float _v);
 
+    glm::vec3 computeBsplinePtDeBoor(const std::array<std::array<glm::vec3, 4>, 4>& _ctrlPoints, 
+                                     const float _u, const float _v);
+
 
     /*!
     * \fn buildTPSsurface
