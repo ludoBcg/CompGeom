@@ -2,6 +2,8 @@
  *
  * numericalintegration.h
  *
+ * Collection of numerical integration methods
+ *
  * CompGeom
  * Ludovic Blache
  *

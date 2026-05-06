@@ -2,6 +2,8 @@
  *
  * dynamicalmodel.h
  *
+ * Abstract class for dynamical models 
+ *
  * CompGeom
  * Ludovic Blache
  *
@@ -65,7 +67,7 @@ public:
     /*!
     * \fn initialize
     * \brief Initializes dynamical model
-    * \param _vertices : List of vertices' positions
+    * \param _verticesPos : List of vertices' positions
     * \param _indices : List of indices
     * \param _fixedPointsIds : List of fixed points indices
     * \param _constraintPoints : List of constraint points (Id, target pos)

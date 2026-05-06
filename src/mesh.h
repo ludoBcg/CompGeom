@@ -89,16 +89,35 @@ struct Vertex
 };
 
 
+/*!
+* \class Mesh
+* \brief Mesh class to store geometry and handle vertex and index buffers
+*/
 class Mesh
 {
     
-
 public:
 
+    /*----------------------------------------------------------------------------------------------+
+    |                                        CONSTRUCTORS                                           |
+    +-----------------------------------------------------------------------------------------------*/
+
+    /*!
+    * \fn Mesh
+    * \brief Default constructor
+    */
     Mesh() = default;
 
+    /*!
+    * \fn Mesh
+    * \brief Copy constructor
+    */
     Mesh(Mesh const& _other) = default;
 
+    /*!
+    * \fn operator=
+    * \brief Copy assignment operator
+    */
     Mesh& operator=(Mesh const& _other)
     {
         m_vertices = _other.m_vertices;
@@ -110,6 +129,10 @@ public:
         return *this;
     }
 
+    /*!
+    * \fn Mesh
+    * \brief Move constructor
+    */
     Mesh(Mesh&& _other)
         : m_vertices(std::move(_other.m_vertices))
         , m_indices(std::move(_other.m_indices))
@@ -119,6 +142,10 @@ public:
         , m_indexBufferMemory(_other.m_indexBufferMemory)
     {}
 
+    /*!
+    * \fn operator=
+    * \brief Move assignment operator
+    */
     Mesh& operator=(Mesh&& _other)
     {
         m_vertices = std::move(_other.m_vertices);
@@ -130,44 +157,106 @@ public:
         return *this;
     }
 
+    /*!
+    * \fn ~Mesh
+    * \brief Desctructor
+    */
     virtual ~Mesh() {};
 
 
+
+    /*----------------------------------------------------------------------------------------------+
+    |                                     GETTERS / SETTERS                                         |
+    +-----------------------------------------------------------------------------------------------*/
+
+    /*! \fn getVertices */
     std::vector<Vertex> const& getVertices() const { return m_vertices; }
+    /*! \fn getIndices */
     std::vector<uint32_t> const& getIndices() const { return m_indices; }
+    /*! \fn getVertexBuffer */
     VkBuffer const getVertexBuffer() const { return m_vertexBuffer; }
+    /*! \fn getVertexBufferMemory */
     VkDeviceMemory const& getVertexBufferMemory() const { return m_vertexBufferMemory; }
+    /*! \fn getIndexBuffer */
     VkBuffer const getIndexBuffer() const { return m_indexBuffer; }
+    /*! \fn getIndexBufferMemory */
     VkDeviceMemory const getIndexBufferMemory() const { return m_indexBufferMemory; }
 
+
+
+    /*----------------------------------------------------------------------------------------------+
+    |                                        MISCELLANEOUS                                          |
+    +-----------------------------------------------------------------------------------------------*/
+
+    /*!
+    * \fn createVertexBuffer
+    * \brief Initializes vertex buffer
+    * \param _context : Vulkan context
+    */
+    void createVertexBuffer(VkContext& _context);
+
+    /*!
+    * \fn updateVertexBuffer
+    * \brief Updates vertex buffer with current data
+    * \param _context : Vulkan context
+    */
+    void updateVertexBuffer(VkContext& _context);
+
+    /*!
+    * \fn createIndexBuffer
+    * \brief Initializes index buffer
+    * \param _context : Vulkan context
+    */
+    void createIndexBuffer(VkContext& _context);
+
+    /*!
+    * \fn cleanup
+    * \brief Clears memory buffers
+    * \param _context : Vulkan context to clean
+    */
     void cleanup(VkContext& _context);
 
-    unsigned int id2Dto1D(const unsigned int _i, const unsigned int _j,
-                          const unsigned int _nbVertI, const unsigned int _nbVertJ) const;
-    virtual void createGrid(const float _lengthSide, const unsigned int _nbVertPerSide);
 
-
-    void createVertexBuffer(VkContext& _context);
-    void updateVertexBuffer(VkContext& _context);
-    void createIndexBuffer(VkContext& _context);
 
 protected:
 
-    // List of vertices
-    std::vector<Vertex> m_vertices;
-    // List of indices
-    std::vector<uint32_t> m_indices;
+    std::vector<Vertex> m_vertices;         /*!< List of vertices */
+    std::vector<uint32_t> m_indices;        /*!< List of indices */
 
-    // Vertex buffer
-    VkBuffer m_vertexBuffer;
-    // Handle to the vertex buffer memory
-    VkDeviceMemory m_vertexBufferMemory;
+    VkBuffer m_vertexBuffer;                /*!< Vertex buffer */
+    VkDeviceMemory m_vertexBufferMemory;    /*!< Handle to the vertex buffer memory */
 
-    // Index buffer
-    VkBuffer m_indexBuffer;
-    // Handle to the index buffer memory
-    VkDeviceMemory m_indexBufferMemory;
+    VkBuffer m_indexBuffer;                 /*!< Index buffer */
+    VkDeviceMemory m_indexBufferMemory;     /*!< Handle to the index buffer memory */
+    
 
+
+    /*----------------------------------------------------------------------------------------------+
+    |                                        MISCELLANEOUS                                          |
+    +-----------------------------------------------------------------------------------------------*/
+
+    /*!
+    * \fn id2Dto1D
+    * \brief Converts 2D array indices to 1D array index
+    * \param _i, _j : 2D indices
+    * \param _nbVertI, _nbVertJ : dimensions of 2D array
+    * \return : 1D index
+    */
+    unsigned int id2Dto1D(const unsigned int _i, const unsigned int _j,
+                          const unsigned int _nbVertI, const unsigned int _nbVertJ) const;
+
+    /*!
+    * \fn createGrid
+    * \brief Builds a squared regular grid mesh
+    * \param _lengthSide : length of grid side
+    * \param _nbVertPerSide : number of vertices per side
+    */
+    virtual void createGrid(const float _lengthSide, const unsigned int _nbVertPerSide);
+
+    /*!
+    * \fn updateNormals
+    * \brief Update coordinates of normal vectors using current positions of vertices
+    */
     void updateNormals();
 
 
