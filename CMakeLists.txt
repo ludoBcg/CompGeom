@@ -14,7 +14,9 @@ set(SRCS
 	src/vkapp.cpp
 	src/mesh.cpp
 	src/dynamicmesh.cpp
-	src/surfacemesh.cpp
+	src/bezier.cpp
+    src/bspline.cpp
+	src/tps.cpp
 	src/image.cpp
 	src/point.cpp
 	src/spring.cpp
@@ -33,6 +35,9 @@ set(HEADERS
 	src/dynamicmesh.h
 	src/dynamicalmodel.h
 	src/surfacemesh.h
+	src/bezier.h
+    src/bspline.h
+	src/tps.h
 	src/image.h
 	src/point.h
 	src/spring.h
