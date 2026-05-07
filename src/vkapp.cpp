@@ -14,6 +14,15 @@
 
 #include "vkapp.h"
 
+#include "massspringsystem.h"
+#include "arap.h"
+#include "fem.h"
+#include "pbd.h"
+
+#include "bspline.h"
+#include "bezier.h"
+#include "tps.h"
+
 
 namespace CompGeom
 {
@@ -61,77 +70,117 @@ void VkApp::initGeomModel()
 {
     // build grid geometry
     m_dynMesh.createGrid(1.5f, 4);
-    m_surfMesh.buildParametricSurface(m_dynMesh, 18, eParametricSurface::BSPLINE);
+    /*m_surfMesh.buildParametricSurface(m_dynMesh, 18, eParametricSurface::BSPLINE);
     m_surfMesh.createVertexBuffer(*m_contextPtr);
-    m_surfMesh.createIndexBuffer(*m_contextPtr);
+    m_surfMesh.createIndexBuffer(*m_contextPtr);*/
+
+    switch (SURFACE_MODEL)
+    {
+        case eParametricSurface::BEZIER:
+        {
+            m_surfMesh = std::make_unique<Bezier>();
+            break;
+        }
+        case eParametricSurface::BSPLINE:
+        {
+            Bspline splineSurf(true);
+            m_surfMesh = std::make_unique<Bspline>(splineSurf);
+            break;
+        }
+        case eParametricSurface::TPS:
+        {
+            m_surfMesh = std::make_unique<TPS>();
+            break;
+        }
+        default:
+        {
+            m_surfMesh = std::make_unique<Bezier>();
+            break;
+        }
+    }
+
+    m_surfMesh->buildParametricSurface(m_dynMesh, 18);
+    m_surfMesh->createVertexBuffer(*m_contextPtr);
+    m_surfMesh->createIndexBuffer(*m_contextPtr);
 
     m_dynMesh.createVertexBuffer(*m_contextPtr);
     m_dynMesh.createIndexBuffer(*m_contextPtr);
-
-    if (ANIMATION_MODEL != eAnimationModels::ARAP && ANIMATION_MODEL != eAnimationModels::FEM && ANIMATION_MODEL != eAnimationModels::PBD)
-    {
-        m_dynMesh.buildDynamicalModel(m_massSpringSystem);
-    }
 
     switch (ANIMATION_MODEL)
     {
         case eAnimationModels::MS_FWE:
         {
-            m_massSpringSystem.setNumIntegMethod(eNumIntegMethods::FORWARD_EULER);
+            MassSpringSystem ms;
+            ms.setNumIntegMethod(eNumIntegMethods::FORWARD_EULER);
+            m_dynamModel = std::make_unique<MassSpringSystem>(ms);
             break;
         }
         case eAnimationModels::MS_SE:
         {
-            m_massSpringSystem.setNumIntegMethod(eNumIntegMethods::SYMPLECTIC_EULER);
+            MassSpringSystem ms;
+            ms.setNumIntegMethod(eNumIntegMethods::SYMPLECTIC_EULER);
+            m_dynamModel = std::make_unique<MassSpringSystem>(ms);
             break;
         }
         case eAnimationModels::MS_BWE:
         {
-            m_massSpringSystem.setNumIntegMethod(eNumIntegMethods::BACKWARD_EULER);
+            MassSpringSystem ms;
+            ms.setNumIntegMethod(eNumIntegMethods::BACKWARD_EULER);
+            m_dynamModel = std::make_unique<MassSpringSystem>(ms);
             break;
         }
         case eAnimationModels::MS_LF:
         {
-            m_massSpringSystem.setNumIntegMethod(eNumIntegMethods::LEAPFROG);
+            MassSpringSystem ms;
+            ms.setNumIntegMethod(eNumIntegMethods::LEAPFROG);
+            m_dynamModel = std::make_unique<MassSpringSystem>(ms);
             break;
         }
         case eAnimationModels::MS_MID:
         {
-            m_massSpringSystem.setNumIntegMethod(eNumIntegMethods::MIDPOINT);
+            MassSpringSystem ms;
+            ms.setNumIntegMethod(eNumIntegMethods::MIDPOINT);
+            m_dynamModel = std::make_unique<MassSpringSystem>(ms);
             break;
         }
         case eAnimationModels::MS_VER:
         {
-            m_massSpringSystem.setNumIntegMethod(eNumIntegMethods::VERLET);
+            MassSpringSystem ms;
+            ms.setNumIntegMethod(eNumIntegMethods::VERLET);
+            m_dynamModel = std::make_unique<MassSpringSystem>(ms);
             break;
         }
         case eAnimationModels::MS_RK4:
         {
-            m_massSpringSystem.setNumIntegMethod(eNumIntegMethods::RK4);
+            MassSpringSystem ms;
+            ms.setNumIntegMethod(eNumIntegMethods::RK4);
+            m_dynamModel = std::make_unique<MassSpringSystem>(ms);
             break;
         }
         case eAnimationModels::ARAP:
         {
-            m_dynMesh.buildDynamicalModel(m_arap);
-            m_dynMesh.readDynamicalModel(m_arap);
-            //m_dynMesh.updateVertexBuffer(*m_contextPtr);
-
+            m_dynamModel = std::make_unique<Arap>();
             break;
         }
         case eAnimationModels::FEM:
         {
-            m_dynMesh.buildDynamicalModel(m_fem);
-            m_dynMesh.readDynamicalModel(m_fem);
-            m_dynMesh.updateVertexBuffer(*m_contextPtr);
-
+            m_dynamModel = std::make_unique<Fem>();
             break;
         }
         case eAnimationModels::PBD:
         {
-            m_dynMesh.buildDynamicalModel(m_pbd);
+            m_dynamModel = std::make_unique<Pbd>();
+            break;
+        }
+        default:
+        {
+            MassSpringSystem ms;
+            ms.setNumIntegMethod(eNumIntegMethods::FORWARD_EULER);
+            m_dynamModel = std::make_unique<MassSpringSystem>(ms);
             break;
         }
     }
+    m_dynMesh.buildDynamicalModel(*m_dynamModel);
 
 }
 
@@ -225,7 +274,7 @@ void VkApp::cleanup()
     vkDestroyDescriptorSetLayout(m_contextPtr->getDevice(), m_descriptorSetLayout, nullptr);
 
     m_dynMesh.cleanup(*m_contextPtr);
-    m_surfMesh.cleanup(*m_contextPtr);
+    m_surfMesh->cleanup(*m_contextPtr);
 
     vkDestroyPipeline(m_contextPtr->getDevice(), m_graphicsPipelineOffscreen, nullptr);
     vkDestroyPipeline(m_contextPtr->getDevice(), m_graphicsPipeline, nullptr);
@@ -259,6 +308,7 @@ void VkApp::cleanup()
     glfwDestroyWindow(m_window);
 
     glfwTerminate();
+
 
     infoLog() << "cleanup(): OK ";
 }
@@ -1077,12 +1127,12 @@ void VkApp::recordCommandBuffer(VkCommandBuffer _commandBuffer, uint32_t _imageI
 
 
         // Bind vertex buffer
-        VkBuffer vertexBuffers[] = { m_surfMesh.getVertexBuffer() };
+        VkBuffer vertexBuffers[] = { m_surfMesh->getVertexBuffer() };
         VkDeviceSize offsets[] = { 0 };
         vkCmdBindVertexBuffers(_commandBuffer, 0, 1, vertexBuffers, offsets);
 
         // Bind index buffer
-        vkCmdBindIndexBuffer(_commandBuffer, m_surfMesh.getIndexBuffer(), 0, VK_INDEX_TYPE_UINT32 /*VK_INDEX_TYPE_UINT16*/);
+        vkCmdBindIndexBuffer(_commandBuffer, m_surfMesh->getIndexBuffer(), 0, VK_INDEX_TYPE_UINT32 /*VK_INDEX_TYPE_UINT16*/);
 
         // Bind descriptors (i.e., uniforms) for offscreen rendering pipeline layout
         vkCmdBindDescriptorSets(_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayoutOffscreen, 0, 1, &m_descriptorSets[m_currentFrame], 0, nullptr);
@@ -1112,15 +1162,15 @@ void VkApp::recordCommandBuffer(VkCommandBuffer _commandBuffer, uint32_t _imageI
 
 
         vkCmdBindPipeline(_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipelineNormal);
-        VkBuffer vertexBuffers2[] = { m_surfMesh.getVertexBuffer() };
+        VkBuffer vertexBuffers2[] = { m_surfMesh->getVertexBuffer() };
         vkCmdBindVertexBuffers(_commandBuffer, 0, 1, vertexBuffers2, offsets);
-        vkCmdBindIndexBuffer(_commandBuffer, m_surfMesh.getIndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindIndexBuffer(_commandBuffer, m_surfMesh->getIndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
         vkCmdBindDescriptorSets(_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &m_descriptorSets[m_currentFrame], 0, nullptr);
-        vkCmdDrawIndexed(_commandBuffer, static_cast<uint32_t>(m_surfMesh.getIndices().size() ), 1, 0, 0, 0);
+        vkCmdDrawIndexed(_commandBuffer, static_cast<uint32_t>( m_surfMesh->getIndices().size() ), 1, 0, 0, 0);
     
 
         vkCmdBindPipeline(_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
-        vkCmdDrawIndexed(_commandBuffer, static_cast<uint32_t>(m_surfMesh.getIndices().size() ), 1, 0, 0, 0);
+        vkCmdDrawIndexed(_commandBuffer, static_cast<uint32_t>( m_surfMesh->getIndices().size() ), 1, 0, 0, 0);
     
     }
 
@@ -1174,29 +1224,11 @@ void VkApp::createSyncObjects()
  */
 void VkApp::updateGeom()
 {
-    if (ANIMATION_MODEL == eAnimationModels::ARAP )
-    {
-        m_arap.iterate();
-        m_dynMesh.readDynamicalModel(m_arap);
-    }
-    else if (ANIMATION_MODEL == eAnimationModels::FEM )
-    {
-        m_fem.updateBoundaryConditions();
-        m_fem.iterate();
-        m_dynMesh.readDynamicalModel(m_fem);
-    }
-    else if (ANIMATION_MODEL == eAnimationModels::PBD )
-    {
-        m_pbd.iterate();
-        m_dynMesh.readDynamicalModel(m_pbd);
-    }
-    else
-    {
-        m_massSpringSystem.iterate();
-        m_dynMesh.readDynamicalModel(m_massSpringSystem);
-    }
-    m_surfMesh.updateParametricSurface(m_dynMesh, eParametricSurface::BSPLINE);
-    m_surfMesh.updateVertexBuffer(*m_contextPtr);
+    m_dynamModel->iterate();
+    m_dynMesh.readDynamicalModel(*m_dynamModel);
+
+    m_surfMesh->updateParametricSurface(m_dynMesh);
+    m_surfMesh->updateVertexBuffer(*m_contextPtr);
     m_dynMesh.updateVertexBuffer(*m_contextPtr);
 }
 

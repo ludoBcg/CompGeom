@@ -20,12 +20,10 @@
 
 #include "vkcontext.h"
 #include "dynamicmesh.h"
+#include "dynamicalmodel.h"
 #include "surfacemesh.h"
 #include "image.h"
-#include "massspringsystem.h"
-#include "arap.h"
-#include "fem.h"
-#include "pbd.h"
+
 
 
 namespace CompGeom
@@ -35,6 +33,9 @@ namespace CompGeom
 class VkApp
 {
 
+    /*!
+     * List of deformation model algorithms
+     */
     enum class eAnimationModels
     {
         MS_FWE,     /* Mass-spring forward Euler */
@@ -49,7 +50,19 @@ class VkApp
         PBD,        /* Position Based Dynamics */
     };
 
-    const eAnimationModels ANIMATION_MODEL = eAnimationModels::MS_FWE;
+    /*!
+     * List of parametric surfaces algorithms
+     */
+    enum class eParametricSurface
+    {
+        BEZIER,     /* Bezier surface */
+        BSPLINE,    /* b-spline surface */
+        TPS         /* Thin Plate Spline surface */
+    };
+
+
+    const eAnimationModels ANIMATION_MODEL = eAnimationModels::PBD;
+    const eParametricSurface SURFACE_MODEL = eParametricSurface::BSPLINE;
 
     const int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -112,11 +125,12 @@ private:
 
     // Mesh contains vertex buffer and index buffer
     DynamicMesh m_dynMesh;
-    SurfaceMesh m_surfMesh;
-    MassSpringSystem m_massSpringSystem;
-    Arap m_arap;
-    Fem m_fem;
-    Pbd m_pbd;
+    std::unique_ptr<SurfaceMesh> m_surfMesh;
+    std::unique_ptr<DynamicalModel> m_dynamModel; 
+    //MassSpringSystem m_massSpringSystem;
+    //Arap m_arap;
+    //Fem m_fem;
+    //Pbd m_pbd;
 
     UniformBufferObject m_ubo{};
     glm::mat4 m_initModel;

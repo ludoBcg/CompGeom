@@ -347,6 +347,8 @@ void Fem::updateBoundaryConditions()
 
 bool Fem::iterate()
 {
+	updateBoundaryConditions();
+
 	assert(m_matK.row(0).size() == m_vecU.size());
 	assert(m_matK.row(0).size() == m_vecF.size());
 	assert(m_matK.row(0).size() == m_matK.col(0).size());

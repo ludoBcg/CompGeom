@@ -146,7 +146,6 @@ public:
     */
     void setBoundaryConditionsForces();
 
-    void updateBoundaryConditions();
 
     /*!
     * \fn iterate
@@ -176,6 +175,8 @@ protected:
     std::vector<uint32_t> m_fixedConstraints;    /* each fixed constraint point is identified by its id */
     std::vector<std::pair<uint32_t, glm::vec3> > m_movingConstraints; /* each moving constraint point is identified by its id and target position */
 
+
+    void updateBoundaryConditions();
 
 }; // class Fem
 
