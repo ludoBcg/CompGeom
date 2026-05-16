@@ -2,6 +2,8 @@
  *
  * arap.h
  *
+ * As-Rigid-as-Possible mesh deformation
+ *
  * CompGeom
  * Ludovic Blache
  *
@@ -52,7 +54,14 @@ public:
     * \fn ~Arap
     * \brief Destructor
     */
-    virtual ~Arap() {};
+    virtual ~Arap()
+    {
+        m_rot.clear();
+        m_anchorsMap.clear();
+        m_constraints.clear();
+        m_initVertices.clear();
+        m_adjacency.clear(); 
+    };
 
 
     /*----------------------------------------------------------------------------------------------+
@@ -94,15 +103,11 @@ public:
     */
     bool getResult(std::vector<glm::vec3>& _res) override;
 
-
     /*!
     * \fn updateConstraints
     * \brief Moves anchors' positions for live animation
     */
     void updateAnchors();
-
-    bool isAdjacencyEmpty() const;
-    unsigned int getVertexDegree(const unsigned int _id) const;
 
 
 protected:
@@ -112,12 +117,6 @@ protected:
     * \brief Build Laplacaian matrix
     */
     bool buildMatrixL();
-
-    /*!
-    * \fn initGuessMatrixX
-    * \brief First iteration to fill-in matrix X 
-    */
-    bool initGuessMatrixX();
 
     /*!
     * \fn extractRot
@@ -132,14 +131,22 @@ protected:
     void localStep();
 
     /*!
+    * \fn initGuessMatrixX
+    * \brief First iteration to fill-in matrix X 
+    */
+    bool initGuessMatrixX();
+
+    /*!
     * \fn globalStep
-    * \brief Solve LX=B system to update values of X
+    * \brief Solves LX=B system to update values of X
     * \return : success
     */
     bool globalStep();
 
     /*!
     * \fn l2Energy
+    * \brief Computes least square error between initial  
+     *       positions of vertices and new values of X
     */
     double l2Energy();
 
@@ -149,6 +156,21 @@ protected:
     * \return : success
     */
     bool solve(double _eps);
+
+    /*!
+    * \fn isAdjacencyEmpty
+    * \brief Checks if adjacency matrix is empty (i.e., contains only false)
+    * \return : true if empty
+    */
+    bool isAdjacencyEmpty() const;
+
+    /*!
+    * \fn getVertexDegree
+    * \brief Returns number of direct neighboors (i.e., first ring neighborhood)  to a vertex
+    * \param _id : index of vertex to get degree
+    * \return : degree
+    */
+    unsigned int getVertexDegree(const unsigned int _id) const;
 
 
     /*----------------------------------------------------------------------------------------------+

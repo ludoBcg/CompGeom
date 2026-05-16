@@ -2,6 +2,8 @@
  *
  * point.h
  *
+ * Point with physical properties to be used in a mass-spring system
+ *
  * CompGeom
  * Ludovic Blache
  *

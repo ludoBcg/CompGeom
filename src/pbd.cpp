@@ -57,7 +57,7 @@ namespace CompGeom
 			}
 		}
 
-		this->addConstraints(_fixedPointsIds, _constraintPoints);
+		m_movingConstraints = _constraintPoints;
 
 		for (auto it = _fixedPointsIds.begin(); it != _fixedPointsIds.end(); ++it)
 		{
@@ -67,99 +67,6 @@ namespace CompGeom
 		return true;
 	}
 
-
-	bool Pbd::getResult(std::vector<glm::vec3>& _res)
-	{
-		_res.clear();
-
-		for (int i = 0; i < m_pointsT.size(); i++)
-		{
-			_res.push_back(m_pointsT.at(i).getPosition());
-		}
-
-		return true;
-	}
-
-
-	void Pbd::addPoint(glm::vec3 _pos, float _mass, float _damping)
-	{
-		Point pt(_pos, _mass, _damping);
-		m_pointsT.push_back(pt);
-	}
-
-
-	void Pbd::addConstraints(std::vector<uint32_t>& _fixedConstraints, std::vector<std::pair<uint32_t, glm::vec3> > _movingConstraint)
-	{
-		m_movingConstraints = _movingConstraint;
-	}
-
-	void Pbd::addDistanceConstraint(const unsigned int _idPt1, const unsigned int _idPt2, const float _stiffness)
-	{
-		assert(_idPt1 != _idPt2);
-
-		DistanceConstraint distanceConstraint( _idPt1, _idPt2
-											 , m_pointsT.at(_idPt1).getPosition(), m_pointsT.at(_idPt2).getPosition()
-											 , _stiffness );
-        m_distanceConstraints.push_back(distanceConstraint);
-	}
-
-	void Pbd::addAnchorConstraint(const unsigned int _idPt, const glm::vec3& _pos)
-	{
-		AnchorConstraint anchorConstraint( _idPt, _pos );
-        m_anchorConstraints.push_back(anchorConstraint);
-	}
-
-
-	void Pbd::clear()
-	{
-		m_pointsT.clear();
-		m_pointsTestimate.clear();
-	}
-
-
-	void Pbd::copyPoints(std::vector<Point>& _src, std::vector<Point>& _dst)
-    {
-        if (_src.size() != _dst.size())
-        {
-            _dst.clear();
-            _dst.assign(_src.size(), Point());
-        }
-        for (int i = 0; i < _src.size(); i++)
-        {
-            _dst.at(i) = _src.at(i);
-        }
-    }
-
-
-	void Pbd::clearForces()
-	{
-		for (int i = 0; i < m_pointsT.size(); i++)
-        {
-             glm::vec3 nullForce(0.0, 0.0, 0.0);
-             m_pointsT.at(i).setForce(nullForce);
-        }
-	}
-
-
-	void Pbd::updateExternalForces()
-	{
-		//apply force on moving constraints (temporarily hardcoded for 5x5 grid)
-		for (auto it = m_movingConstraints.begin(); it != m_movingConstraints.end(); ++it)
-		{
-			glm::vec3 targetPos = it->second;
-			glm::vec3 constraintPos = m_pointsT.at(it->first).getPosition();
-			glm::vec3 forceVec = targetPos - constraintPos;
-			if(glm::length(forceVec) > 1.0f /*m_extForceFactor*/)
-				forceVec = glm::normalize(forceVec) * 1.0f /*m_extForceFactor*/; 
-			m_pointsT.at(it->first).addForce(forceVec);
-		}
-	}
-
-
-	void Pbd::updateInternalForces()
-	{
-		
-	}
 
 	// https://github.com/marcelogm/pbd/blob/master/src/simulation/Simulator.cpp
     bool Pbd::iterate()
@@ -241,6 +148,96 @@ namespace CompGeom
         }
 		return true;
 	}
+
+
+	bool Pbd::getResult(std::vector<glm::vec3>& _res)
+	{
+		_res.clear();
+
+		for (int i = 0; i < m_pointsT.size(); i++)
+		{
+			_res.push_back(m_pointsT.at(i).getPosition());
+		}
+
+		return true;
+	}
+
+
+	void Pbd::addPoint(glm::vec3 _pos, float _mass, float _damping)
+	{
+		Point pt(_pos, _mass, _damping);
+		m_pointsT.push_back(pt);
+	}
+
+
+	void Pbd::clear()
+	{
+		m_pointsT.clear();
+		m_pointsTestimate.clear();
+	}
+
+
+	void Pbd::copyPoints(std::vector<Point>& _src, std::vector<Point>& _dst)
+    {
+        if (_src.size() != _dst.size())
+        {
+            _dst.clear();
+            _dst.assign(_src.size(), Point());
+        }
+        for (int i = 0; i < _src.size(); i++)
+        {
+            _dst.at(i) = _src.at(i);
+        }
+    }
+
+
+	void Pbd::clearForces()
+	{
+		for (int i = 0; i < m_pointsT.size(); i++)
+        {
+             glm::vec3 nullForce(0.0, 0.0, 0.0);
+             m_pointsT.at(i).setForce(nullForce);
+        }
+	}
+
+
+	void Pbd::updateExternalForces()
+	{
+		//apply force on moving constraints (temporarily hardcoded for 5x5 grid)
+		for (auto it = m_movingConstraints.begin(); it != m_movingConstraints.end(); ++it)
+		{
+			glm::vec3 targetPos = it->second;
+			glm::vec3 constraintPos = m_pointsT.at(it->first).getPosition();
+			glm::vec3 forceVec = targetPos - constraintPos;
+			if(glm::length(forceVec) > 1.0f /*m_extForceFactor*/)
+				forceVec = glm::normalize(forceVec) * 1.0f /*m_extForceFactor*/; 
+			m_pointsT.at(it->first).addForce(forceVec);
+		}
+	}
+
+
+	void Pbd::updateInternalForces()
+	{
+		// ...
+	}
+
+	void Pbd::addDistanceConstraint(const unsigned int _idPt1, const unsigned int _idPt2, const float _stiffness)
+	{
+		assert(_idPt1 != _idPt2);
+
+		DistanceConstraint distanceConstraint( _idPt1, _idPt2
+											 , m_pointsT.at(_idPt1).getPosition(), m_pointsT.at(_idPt2).getPosition()
+											 , _stiffness );
+        m_distanceConstraints.push_back(distanceConstraint);
+	}
+
+
+	void Pbd::addAnchorConstraint(const unsigned int _idPt, const glm::vec3& _pos)
+	{
+		AnchorConstraint anchorConstraint( _idPt, _pos );
+        m_anchorConstraints.push_back(anchorConstraint);
+	}
+
 
 	void Pbd::project_DistanceConstraint(DistanceConstraint& _distanceConstraint, int _nbIterations)
 	{

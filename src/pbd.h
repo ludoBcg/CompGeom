@@ -2,6 +2,8 @@
  *
  * pbd.h
  *
+ * Position Based Dynamics
+ *
  * CompGeom
  * Ludovic Blache
  *
@@ -88,7 +90,14 @@ public:
     * \fn ~Pbd
     * \brief Destructor
     */
-    virtual ~Pbd() {};
+    virtual ~Pbd()
+    {
+        m_pointsT.clear();
+        m_pointsTestimate.clear();
+        m_distanceConstraints.clear(); 
+        m_anchorConstraints.clear();
+        m_movingConstraints.clear();
+    };
 
 
     /*----------------------------------------------------------------------------------------------+
@@ -134,15 +143,11 @@ public:
     */
     bool getResult(std::vector<glm::vec3>& _res) override;
 
-
     /*!
     * \fn addPoint
     * \brief Add a new point in m_pointsT
     */
     void addPoint(glm::vec3 _pos, float _mass, float _damping);
-
-
-    void addConstraints(std::vector<uint32_t>& _fixedConstraints, std::vector<std::pair<uint32_t, glm::vec3> > _movingConstraint);
 
     /*!
     * \fn clear
@@ -150,8 +155,16 @@ public:
     */
     void clear();
 
+    /*!
+    * \fn copyPoints
+    * \brief copy source points to destination
+    */
     void copyPoints(std::vector<Point>& _src, std::vector<Point>& _dst);
 
+    /*!
+    * \fn clearForces
+    * \brief set all forces to zero
+    */
     void clearForces();
 
     /*!
@@ -166,11 +179,39 @@ public:
     */
     void updateInternalForces();
 
+    /*!
+    * \fn addDistanceConstraint
+    * \brief Adds a new distance constraint (spring-like) between two points
+    * \param _idPt1 : index of the first point
+    * \param _idPt2 : index of the second point
+    * \param _stiffness : stiffness of the spring-like constraint
+    */
+    void addDistanceConstraint(const unsigned int _idPt1, const unsigned int _idPt2, const float _stiffness);
+    
+    /*!
+    * \fn addAnchorConstraint
+    * \brief Adds a new anchor constraint
+    * \param _idPt1 : index of the point to anchor
+    * \param _pos : target position of the anchor
+    */
+    void addAnchorConstraint(const unsigned int _idPt, const glm::vec3& _pos);
+
+    /*!
+    * \fn project_DistanceConstraint
+    * \brief Projects a distance contraint
+    * \param _distanceConstraint : the distance constraint to project
+    * \param _nbIterations : number of iterations
+    */
     void project_DistanceConstraint(DistanceConstraint& _distanceConstraint, int _nbIterations);
+     
+    /*!
+    * \fn project_AnchorConstraint
+    * \brief Projects an anchor contraint
+    * \param _anchorConstraint : the anchor constraint to project
+    */
     void project_AnchorConstraint(AnchorConstraint& _anchorConstraint);
 
-    void addDistanceConstraint(const unsigned int _idPt1, const unsigned int _idPt2, const float _stiffness);
-    void addAnchorConstraint(const unsigned int _idPt, const glm::vec3& _pos);
+    
 
 protected:
 
@@ -178,16 +219,14 @@ protected:
     |                                         ATTRIBUTES                                            |
     +-----------------------------------------------------------------------------------------------*/
 
-    std::vector<Point> m_pointsT;       /*!< points at time T */
+    std::vector<Point> m_pointsT;           /*!< points at time T */
+    std::vector<Point> m_pointsTestimate;   /*!< estimation of points at time T */
 
-    std::vector<Point> m_pointsTestimate;
+    std::vector<DistanceConstraint> m_distanceConstraints;              /*!< List of distance constraints */
+    std::vector<AnchorConstraint> m_anchorConstraints;                  /*!< List of anchor constraints */
+    std::vector<std::pair<uint32_t, glm::vec3> > m_movingConstraints;   /*!< List of moving points constraints (id and target position) */
 
-    std::vector<DistanceConstraint> m_distanceConstraints;
-    std::vector<AnchorConstraint> m_anchorConstraints;
-
-    std::vector<std::pair<uint32_t, glm::vec3> > m_movingConstraints;
-
-    NumericalIntegrationEuler m_integrationEuler;
+    NumericalIntegrationEuler m_integrationEuler;                       /*!< Forward Euler method */
 
 
 }; // class Pbd

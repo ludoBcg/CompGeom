@@ -2,6 +2,8 @@
  *
  * spring.h
  *
+ * Spring connecting 2 points in a mass-spring system
+ * 
  * CompGeom
  * Ludovic Blache
  *
@@ -112,6 +114,7 @@ public:
     */
     const glm::vec3 calculateForce(glm::vec3 const& _p1, glm::vec3 const& _p2);
     
+
 protected:
 
     /*----------------------------------------------------------------------------------------------+
