@@ -19,32 +19,70 @@ namespace CompGeom
 {
 
 
+/*!
+* \class Bezier
+* \brief Bicubic Bezier surface
+*/
 class Bezier : public SurfaceMesh
 {
 
 public:
 
+    /*----------------------------------------------------------------------------------------------+
+    |                                        CONSTRUCTORS                                           |
+    +-----------------------------------------------------------------------------------------------*/
+
+    /*!
+    * \fn Bezier
+    * \brief Default constructor
+    */
     Bezier() = default;
 
+    /*!
+    * \fn Bezier
+    * \brief Copy constructor
+    */
     Bezier(Bezier const& _other) = default;
 
+    /*!
+    * \fn operator=
+    * \brief Copy assignment operator
+    */
     Bezier& operator=(Bezier const& _other)
     {
         Mesh::operator=(_other);
         return *this;
     }
 
+    /*!
+    * \fn Bezier
+    * \brief Move constructor
+    */
     Bezier(Bezier&& _other)
         : SurfaceMesh(std::move(_other)) 
     {}
 
+    /*!
+    * \fn operator=
+    * \brief Move assignment operator
+    */
     Bezier& operator=(Bezier&& _other)
     {
         Mesh::operator=(_other);
         return *this;
     }
 
+    /*!
+    * \fn ~Bezier
+    * \brief Destructor
+    */
     virtual ~Bezier() {};
+
+
+    
+    /*----------------------------------------------------------------------------------------------+
+    |                                        MISCELLANEOUS                                          |
+    +-----------------------------------------------------------------------------------------------*/
 
     /*!
     * \fn buildParametricSurface
@@ -64,7 +102,10 @@ public:
 
 protected:
 
-
+    /*!
+    * \fn fact
+    * \brief Factorial function
+    */
     int fact(int _i);
 
     /*!

@@ -15,57 +15,6 @@
 namespace CompGeom
 {
 
-int Bezier::fact(int _i)
-{
-    // i! = i * (i-1) * (i-2) * ... * 2 * 1
-
-    // recursive version: i! = i * (i-1)!
-    return _i == 0 ? 1 : _i * fact(_i-1); 
-}
-
-
-double Bezier::BernsteinCoeff(int _n, int _i, double _t)
-{
-    // Binomial coefficient C(n, i) = (n!) / (i! (n! - i!))
-	double C = fact(_n) / (double)(fact(_i) * fact(_n-_i));
-
-    // Compute Bernstein basis polynomials
-    // B_i^n(t) = C(n, i) * t^i * (1-t)^(n-i)
-	double B = C * pow(_t, _i) * pow((1.0 - _t), (_n - _i));
-
-	return B;
-}
-
-
-glm::vec3 Bezier::computePtUV(const std::array<std::array<glm::vec3, 4>, 4>& _ctrlPoints,
-                              const float _u, const float _v)
-{
-    // degree = nb ctrl pts - 1
-    // Bicubic surface: degree n = m = 3 (i.e., 4 ctrl pts)
-    const int nbCtrlPts = 4;
-    const int degree = nbCtrlPts - 1;
-
-    if (_ctrlPoints.size() != 4 || _ctrlPoints.front().size() != 4)
-    {
-        std::cerr << "Number of control point array must be 4x4 for  bicubic Bezier surface" << std::endl;
-    }
-
-    glm::vec3 surfacePoint(0.0f, 0.0f, 0.0f);
-    
-    for (int i = 0; i < nbCtrlPts; i++)
-    {
-        for (int j = 0; j < nbCtrlPts; j++)
-        {
-            double Bu = BernsteinCoeff(degree, i, _u);
-            double Bv = BernsteinCoeff(degree, j, _v);
-            float coeff = static_cast<float>(Bu * Bv);
-            
-            surfacePoint += _ctrlPoints.at(i).at(j) * coeff;
-        }
-    }
-    return surfacePoint;
-}
-
 
 void Bezier::buildParametricSurface(Mesh& _ctrlPolygon, int _nbSteps)
 {
@@ -205,6 +154,57 @@ void Bezier::updateParametricSurface(Mesh& _ctrlPolygon)
 
 }
 
+
+int Bezier::fact(int _i)
+{
+    // i! = i * (i-1) * (i-2) * ... * 2 * 1
+
+    // recursive version: i! = i * (i-1)!
+    return _i == 0 ? 1 : _i * fact(_i-1); 
+}
+
+
+double Bezier::BernsteinCoeff(int _n, int _i, double _t)
+{
+    // Binomial coefficient C(n, i) = (n!) / (i! (n! - i!))
+	double C = fact(_n) / (double)(fact(_i) * fact(_n-_i));
+
+    // Compute Bernstein basis polynomials
+    // B_i^n(t) = C(n, i) * t^i * (1-t)^(n-i)
+	double B = C * pow(_t, _i) * pow((1.0 - _t), (_n - _i));
+
+	return B;
+}
+
+
+glm::vec3 Bezier::computePtUV(const std::array<std::array<glm::vec3, 4>, 4>& _ctrlPoints,
+                              const float _u, const float _v)
+{
+    // degree = nb ctrl pts - 1
+    // Bicubic surface: degree n = m = 3 (i.e., 4 ctrl pts)
+    const int nbCtrlPts = 4;
+    const int degree = nbCtrlPts - 1;
+
+    if (_ctrlPoints.size() != 4 || _ctrlPoints.front().size() != 4)
+    {
+        std::cerr << "Number of control point array must be 4x4 for  bicubic Bezier surface" << std::endl;
+    }
+
+    glm::vec3 surfacePoint(0.0f, 0.0f, 0.0f);
+    
+    for (int i = 0; i < nbCtrlPts; i++)
+    {
+        for (int j = 0; j < nbCtrlPts; j++)
+        {
+            double Bu = BernsteinCoeff(degree, i, _u);
+            double Bv = BernsteinCoeff(degree, j, _v);
+            float coeff = static_cast<float>(Bu * Bv);
+            
+            surfacePoint += _ctrlPoints.at(i).at(j) * coeff;
+        }
+    }
+    return surfacePoint;
+}
 
 
 } // namespace CompGeom

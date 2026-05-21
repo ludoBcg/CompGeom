@@ -2,7 +2,7 @@
  *
  * tps.h
  *
- * TPS surfaces
+ * Thin Plate Spline surfaces
  *
  * CompGeom
  * Ludovic Blache
@@ -24,6 +24,10 @@ namespace CompGeom
 {
 
 
+/*!
+* \class TPS
+* \brief Thin Plate Spline surface
+*/
 class TPS : public SurfaceMesh
 {
     // Pivoted LU decomposition
@@ -32,27 +36,61 @@ class TPS : public SurfaceMesh
 
 public:
 
+    /*----------------------------------------------------------------------------------------------+
+    |                                        CONSTRUCTORS                                           |
+    +-----------------------------------------------------------------------------------------------*/
+
+    /*!
+    * \fn TPS
+    * \brief Default constructor
+    */
     TPS() = default;
 
+    /*!
+    * \fn TPS
+    * \brief Copy constructor
+    */
     TPS(TPS const& _other) = default;
 
+    /*!
+    * \fn operator=
+    * \brief Copy assignment operator
+    */
     TPS& operator=(TPS const& _other)
     {
         Mesh::operator=(_other);
         return *this;
     }
 
+    /*!
+    * \fn TPS
+    * \brief Move constructor
+    */
     TPS(TPS&& _other)
         : SurfaceMesh(std::move(_other)) 
     {}
 
+    /*!
+    * \fn operator=
+    * \brief Move assignment operator
+    */
     TPS& operator=(TPS&& _other)
     {
         Mesh::operator=(_other);
         return *this;
     }
 
+    /*!
+    * \fn ~TPS
+    * \brief Destructor
+    */
     virtual ~TPS() {};
+
+
+
+    /*----------------------------------------------------------------------------------------------+
+    |                                        MISCELLANEOUS                                          |
+    +-----------------------------------------------------------------------------------------------*/
 
     /*!
     * \fn buildParametricSurface
@@ -73,9 +111,6 @@ public:
 
 protected:
 
-    TpsLU m_LU;
-
-    
     /*!
     * \fn baseFunc
     * \brief function U(r)
@@ -113,7 +148,6 @@ protected:
     */
     bool buildVectorV(Eigen::VectorXd& _vecV, std::vector<glm::vec3>& _ctrlPoints);
 
-
     /*!
     * \fn computePtUV
     * \brief Calculates 3D coordinates of surface point at parametric coords (u,v)
@@ -121,7 +155,15 @@ protected:
     * \param _u, _v : parametric coordinate (_u, _v in [0.0, 1.0])
     */
     glm::vec3 computePtUV(const std::array<std::array<glm::vec3, 4>, 4>& _ctrlPoints, 
-                                  const float _u, const float _v) override;
+                           const float _u, const float _v) override;
+
+
+
+    /*----------------------------------------------------------------------------------------------+
+    |                                         ATTRIBUTES                                            |
+    +-----------------------------------------------------------------------------------------------*/
+
+    TpsLU m_LU; /*!< pivoted LU decomposition for system solver */
 
 
 }; // class TPS

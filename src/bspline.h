@@ -19,36 +19,78 @@ namespace CompGeom
 {
 
 
+/*!
+* \class Bspline
+* \brief b-spline surface using either de Boor algorithm, or Riesenfeld polynomials
+*/
 class Bspline : public SurfaceMesh
 {
 
 public:
 
+    /*----------------------------------------------------------------------------------------------+
+    |                                        CONSTRUCTORS                                           |
+    +-----------------------------------------------------------------------------------------------*/
+
+    /*!
+    * \fn Bspline
+    * \brief Default constructor
+    */
     Bspline() = default;
 
+    /*!
+    * \fn Bspline
+    * \brief Constructor
+    */
     Bspline(bool _useDeBoor)
         : m_useDeBoor(_useDeBoor)
     {}
 
+    /*!
+    * \fn Bspline
+    * \brief Copy constructor
+    */
     Bspline(Bspline const& _other) = default;
 
+    /*!
+    * \fn operator=
+    * \brief Copy assignment operator
+    */
     Bspline& operator=(Bspline const& _other)
     {
         Mesh::operator=(_other);
         return *this;
     }
 
+    /*!
+    * \fn Bspline
+    * \brief Move constructor
+    */
     Bspline(Bspline&& _other)
         : SurfaceMesh(std::move(_other)) 
     {}
 
+    /*!
+    * \fn operator=
+    * \brief Move assignment operator
+    */
     Bspline& operator=(Bspline&& _other)
     {
         Mesh::operator=(_other);
         return *this;
     }
 
+    /*!
+    * \fn ~Bspline
+    * \brief Destructor
+    */
     virtual ~Bspline() {};
+
+
+
+    /*----------------------------------------------------------------------------------------------+
+    |                                        MISCELLANEOUS                                          |
+    +-----------------------------------------------------------------------------------------------*/
 
     /*!
     * \fn buildParametricSurface
@@ -68,10 +110,11 @@ public:
 
 protected:
 
-    std::vector<double> m_knots;
-    bool m_useDeBoor = true;
 
-
+    /*!
+    * \fn fact
+    * \brief Factorial function
+    */
     int fact(int _i);
 
     int findKnotSpan(int _nbCtrlPts, int _degree, double _t);
@@ -110,6 +153,13 @@ protected:
     glm::vec3 computePtUVDeBoor(const std::array<std::array<glm::vec3, 4>, 4>& _ctrlPoints, 
                                 const float _u, const float _v);
 
+
+    /*----------------------------------------------------------------------------------------------+
+    |                                         ATTRIBUTES                                            |
+    +-----------------------------------------------------------------------------------------------*/
+
+    std::vector<double> m_knots;
+    bool m_useDeBoor = true;
 
 }; // class Bspline
 
