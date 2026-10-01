@@ -82,7 +82,7 @@ include_directories(SYSTEM "${LIBS_DIR}/third_party/glm-1.0.3")
 
 
 # Eigen (Header only)
-include_directories(SYSTEM "${LIBS_DIR}/third_party/eigen-3.4.0")
+include_directories(SYSTEM "${LIBS_DIR}/third_party/eigen-5.0.0")
 
 
 ################################# BUILD PROJECT ######################
